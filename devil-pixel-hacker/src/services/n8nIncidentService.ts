@@ -45,26 +45,33 @@ export async function triggerCallMeBotCall(
   payload: IncidentAlertPayload
 ): Promise<{ success: boolean; status: string }> {
   try {
+    const textMsg = `🚨 [CRITICAL ALERT] ${String(payload.incident_type).replace(/_/g, ' ').toUpperCase()} on ${payload.endpoint}. Attacker IP: ${payload.source_ip}. Anomaly: ${payload.anomaly_score}. AI Agent investigating.`;
     const speechText = (
       `Incident alert. ${String(payload.incident_type).replace(/_/g, ' ')} on endpoint ${payload.endpoint}. Source I P ${payload.source_ip}. The A I agent is investigating. Check Telegram for the approval request.`
     ).slice(0, 250);
 
+    const textUrl = `https://api.callmebot.com/text.php?user=@Vishnu130507&text=${encodeURIComponent(textMsg)}`;
     const callUrl = `https://api.callmebot.com/start.php?user=@Vishnu130507&text=${encodeURIComponent(
       speechText
     )}&lang=en-GB-Standard-B&rpt=2&cc=missed`;
 
-    // Fire GET request via browser fetch (no-cors mode allows cross-origin invocation)
-    fetch(callUrl, { mode: 'no-cors' }).catch(() => {});
-
-    // Also trigger via image beacon for maximum browser compatibility
+    // 1. Dispatch Telegram Text Message (Guaranteed text delivery)
+    fetch(textUrl, { mode: 'no-cors' }).catch(() => {});
     if (typeof window !== 'undefined') {
-      const beacon = new Image();
-      beacon.src = callUrl;
+      const imgText = new Image();
+      imgText.src = textUrl;
+    }
+
+    // 2. Dispatch Telegram Audio Call
+    fetch(callUrl, { mode: 'no-cors' }).catch(() => {});
+    if (typeof window !== 'undefined') {
+      const imgCall = new Image();
+      imgCall.src = callUrl;
     }
 
     return {
       success: true,
-      status: 'Telegram Audio Call placed to @Vishnu130507 via CallMeBot',
+      status: 'Telegram Text Message & Audio Call dispatched to @Vishnu130507',
     };
   } catch (err: any) {
     return {

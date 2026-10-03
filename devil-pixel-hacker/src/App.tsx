@@ -107,6 +107,13 @@ export default function App() {
       return;
     }
     setIntroPhase('speaking_hacker');
+
+    // Immediately dispatch real-time incident alert & CallMeBot alert to @Vishnu130507
+    const payload = getIncidentPayloadForAttack('brute', hackerIp);
+    dispatchN8nIncidentAlert(payload).then((res) => {
+      setActiveIncident(res);
+    });
+
     triggerHackerSpeech("Enter as hacker", true, () => {
       // After speech & laugh completes:
       setIntroPhase('glitch_transition');
@@ -116,7 +123,7 @@ export default function App() {
         setIntroPhase('completed');
       }, 1100);
     });
-  }, [introPhase, triggerHackerSpeech]);
+  }, [introPhase, hackerIp, triggerHackerSpeech]);
 
   // Master Intro Orchestration Sequence
   const runIntroSequence = useCallback(() => {
@@ -192,13 +199,19 @@ export default function App() {
       evilAudio.playGlitchBurst();
       evilAudio.playDemonicRumble(5.0);
 
+      // Immediately alert on-call engineer via Telegram Message & Audio Call
+      const payload = getIncidentPayloadForAttack(attackType, hackerIp);
+      dispatchN8nIncidentAlert(payload).then((res) => {
+        setActiveIncident(res);
+      });
+
       // If Agent was already deployed, it intercepts immediately.
       // If NOT yet deployed, Phase 1 commences: wires flow to software, silent leak!
       if (isAgentDeployed) {
         executeFirewallBlock(hackerIp);
         triggerAgentDefense(attackType);
       } else {
-        setAgentStatus('monitoring');
+        setAgentStatus('threat_detected');
       }
 
       setTimeout(() => {
@@ -217,6 +230,10 @@ export default function App() {
 
   const handleLaunchAttack = (attackType: string) => {
     setCurrentAttack(attackType);
+    const payload = getIncidentPayloadForAttack(attackType, hackerIp);
+    dispatchN8nIncidentAlert(payload).then((res) => {
+      setActiveIncident(res);
+    });
     if (!isSiphoning) {
       handleToggleSiphon(attackType);
     } else if (isAgentDeployed) {
