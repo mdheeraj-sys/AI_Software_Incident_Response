@@ -108,12 +108,6 @@ export default function App() {
     }
     setIntroPhase('speaking_hacker');
 
-    // Immediately dispatch real-time incident alert & CallMeBot alert to @Vishnu130507
-    const payload = getIncidentPayloadForAttack('brute', hackerIp);
-    dispatchN8nIncidentAlert(payload).then((res) => {
-      setActiveIncident(res);
-    });
-
     triggerHackerSpeech("Enter as hacker", true, () => {
       // After speech & laugh completes:
       setIntroPhase('glitch_transition');
@@ -123,7 +117,7 @@ export default function App() {
         setIntroPhase('completed');
       }, 1100);
     });
-  }, [introPhase, hackerIp, triggerHackerSpeech]);
+  }, [introPhase, triggerHackerSpeech]);
 
   // Master Intro Orchestration Sequence
   const runIntroSequence = useCallback(() => {
@@ -184,32 +178,33 @@ export default function App() {
   const handleDeployAgent = () => {
     setIsAgentDeployed(true);
     evilAudio.playGlitchBurst();
-    // Engage real-time firewall block on the victim server
-    executeFirewallBlock(hackerIp);
-    triggerAgentDefense(currentAttack);
+
+    // If attack is ALREADY active when "USE AGENT" is clicked, deploy defense & alerts!
+    // If NO attack is active yet, Agent enters monitoring standby (NO calls or messages until attack is launched!)
+    if (isSiphoning) {
+      executeFirewallBlock(hackerIp);
+      triggerAgentDefense(currentAttack);
+    } else {
+      setAgentStatus('monitoring');
+    }
   };
 
   // Toggle cyber siphon wire extraction
-  const handleToggleSiphon = (attackType: string = 'brute') => {
+  const handleToggleSiphon = (attackType?: string) => {
+    const targetAttack = attackType || currentAttack;
     const nextState = !isSiphoning;
     setIsSiphoning(nextState);
-    setCurrentAttack(attackType);
+    setCurrentAttack(targetAttack);
 
     if (nextState) {
       evilAudio.playGlitchBurst();
       evilAudio.playDemonicRumble(5.0);
 
-      // Immediately alert on-call engineer via Telegram Message & Audio Call
-      const payload = getIncidentPayloadForAttack(attackType, hackerIp);
-      dispatchN8nIncidentAlert(payload).then((res) => {
-        setActiveIncident(res);
-      });
-
-      // If Agent was already deployed, it intercepts immediately.
-      // If NOT yet deployed, Phase 1 commences: wires flow to software, silent leak!
+      // ONLY trigger calls and messages if Agent has been deployed ("USE AGENT" clicked)!
+      // If NOT yet deployed, Phase 1 commences: wires flow to software directly, zero calls/messages!
       if (isAgentDeployed) {
         executeFirewallBlock(hackerIp);
-        triggerAgentDefense(attackType);
+        triggerAgentDefense(targetAttack);
       } else {
         setAgentStatus('threat_detected');
       }
@@ -228,12 +223,17 @@ export default function App() {
     }
   };
 
+  const handleSelectAttack = (attackType: string) => {
+    setCurrentAttack(attackType);
+    // If attack is actively running AND Agent is deployed, adapt defense for the new vector
+    if (isSiphoning && isAgentDeployed) {
+      executeFirewallBlock(hackerIp);
+      triggerAgentDefense(attackType);
+    }
+  };
+
   const handleLaunchAttack = (attackType: string) => {
     setCurrentAttack(attackType);
-    const payload = getIncidentPayloadForAttack(attackType, hackerIp);
-    dispatchN8nIncidentAlert(payload).then((res) => {
-      setActiveIncident(res);
-    });
     if (!isSiphoning) {
       handleToggleSiphon(attackType);
     } else if (isAgentDeployed) {
@@ -374,6 +374,7 @@ export default function App() {
             onSpeakHacker={(text) => triggerHackerSpeech(text || "Enter as hacker")}
             onTriggerLaugh={() => triggerEvilLaugh(6)}
             onReplayIntro={runIntroSequence}
+            onSelectAttack={handleSelectAttack}
             onLaunchAttack={handleLaunchAttack}
           />
         </aside>

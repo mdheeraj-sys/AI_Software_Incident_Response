@@ -159,7 +159,7 @@ export const AgentMiddleCanvas: React.FC<AgentMiddleCanvasProps> = ({
       >
         {/* Wire Anchor Target: Quantum Cyber Wires converge directly here */}
         <div id="agent-avatar-anchor" className="relative flex flex-col items-center justify-center">
-          {showAvatar && (
+          {showAvatar ? (
             <div 
               className="relative flex flex-col items-center justify-center group cursor-pointer transition-all duration-500 animate-in fade-in zoom-in-90" 
               onClick={onOpenStudio}
@@ -189,6 +189,50 @@ export const AgentMiddleCanvas: React.FC<AgentMiddleCanvasProps> = ({
                 pulseGlow={true}
                 interactive={true}
               />
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center p-6 max-w-sm animate-in fade-in duration-500">
+              {isSiphoning ? (
+                <div className="p-5 rounded-2xl border-2 border-red-300 bg-red-50/90 shadow-lg flex flex-col items-center gap-3 backdrop-blur-xs">
+                  <AlertTriangle className="w-10 h-10 text-red-600 animate-bounce" />
+                  <div className="font-bold text-red-950 text-sm font-space uppercase">
+                    ATTACK IN PROGRESS // UNPROTECTED
+                  </div>
+                  <p className="text-[11px] text-red-800 font-mono leading-relaxed">
+                    Siphon wires are breaching College Portal. Click <b>USE AGENT</b> to deploy autonomous incident response sentinel.
+                  </p>
+                  {onDeployAgent && (
+                    <button
+                      onClick={onDeployAgent}
+                      className="mt-1 px-5 py-2 rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold font-mono text-xs uppercase tracking-wider shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-2 animate-pulse"
+                    >
+                      <Shield className="w-4 h-4" />
+                      <span>USE AGENT NOW</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 text-zinc-400">
+                  <div className="size-16 rounded-full border border-dashed border-zinc-300 flex items-center justify-center bg-zinc-50">
+                    <Shield className="w-8 h-8 text-zinc-400" />
+                  </div>
+                  <div className="text-[11px] font-mono tracking-wider uppercase text-zinc-600 font-bold">
+                    AI AGENT STANDBY
+                  </div>
+                  <p className="text-[10px] text-zinc-500 max-w-[260px] font-mono leading-relaxed">
+                    Click <b>USE AGENT</b> and then launch attacks. The AI sentinel, phone calls, and Telegram alerts will trigger upon threat detection.
+                  </p>
+                  {onDeployAgent && (
+                    <button
+                      onClick={onDeployAgent}
+                      className="mt-1 px-4 py-1.5 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-[11px] font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Shield className="w-3.5 h-3.5" />
+                      <span>USE AGENT</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -36,6 +36,12 @@ const N8N_WEBHOOK_URL = (import.meta as any).env?.VITE_N8N_WEBHOOK_URL || 'https
 const OPENROUTER_API_KEY = (import.meta as any).env?.VITE_OPENROUTER_API_KEY || '';
 const OPENROUTER_MODEL = (import.meta as any).env?.VITE_OPENROUTER_MODEL || 'qwen/qwen3.8-27b:free';
 
+let lastCallTimestamp = 0;
+let lastCallResult: { success: boolean; status: string } = {
+  success: true,
+  status: 'Telegram Text Message & Audio Call dispatched to @Vishnu130507',
+};
+
 /**
  * Directly rings the on-call engineer via CallMeBot Telegram Audio Call.
  * Exactly matches the n8n "Call On-Call Engineer" node:
@@ -44,6 +50,13 @@ const OPENROUTER_MODEL = (import.meta as any).env?.VITE_OPENROUTER_MODEL || 'qwe
 export async function triggerCallMeBotCall(
   payload: IncidentAlertPayload
 ): Promise<{ success: boolean; status: string }> {
+  const now = Date.now();
+  // Cooldown of 8 seconds prevents multiple simultaneous phone calls
+  if (now - lastCallTimestamp < 8000) {
+    return lastCallResult;
+  }
+  lastCallTimestamp = now;
+
   try {
     const textMsg = `🚨 [CRITICAL ALERT] ${String(payload.incident_type).replace(/_/g, ' ').toUpperCase()} on ${payload.endpoint}. Attacker IP: ${payload.source_ip}. Anomaly: ${payload.anomaly_score}. AI Agent investigating.`;
     const speechText = (

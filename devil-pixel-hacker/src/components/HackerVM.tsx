@@ -9,7 +9,8 @@ import hackerImg from '../assets/hacker.jpg';
 
 interface HackerVMProps {
   isSiphoning: boolean;
-  onToggleSiphon: () => void;
+  onToggleSiphon: (attackType?: string) => void;
+  onSelectAttack?: (type: string) => void;
   onSpeakHacker: (text?: string) => void;
   onTriggerLaugh: () => void;
   onReplayIntro: () => void;
@@ -20,6 +21,7 @@ interface HackerVMProps {
 export const HackerVM: React.FC<HackerVMProps> = ({
   isSiphoning,
   onToggleSiphon,
+  onSelectAttack,
   onSpeakHacker,
   onTriggerLaugh,
   onReplayIntro,
@@ -101,20 +103,24 @@ export const HackerVM: React.FC<HackerVMProps> = ({
         '  clear         - clear console logs',
       ]);
     } else if (lower === 'suck' || lower === 'attack' || lower === 'drain') {
-      if (!isSiphoning) onToggleSiphon();
+      if (!isSiphoning) onToggleSiphon(selectedAttack);
     } else if (lower === 'stop' || lower === 'detach') {
-      if (isSiphoning) onToggleSiphon();
+      if (isSiphoning) onToggleSiphon(selectedAttack);
     } else if (lower === 'brute') {
       setSelectedAttack('brute');
+      onSelectAttack?.('brute');
       setLines((prev) => [...prev, '[*] Vector set: Hydra Password Brute Force']);
     } else if (lower === 'sqli') {
       setSelectedAttack('sqli');
+      onSelectAttack?.('sqli');
       setLines((prev) => [...prev, '[*] Vector set: SQLMap SQL Injection Probe']);
     } else if (lower === 'scan') {
       setSelectedAttack('scan');
+      onSelectAttack?.('scan');
       setLines((prev) => [...prev, '[*] Vector set: Gobuster Directory Scan']);
     } else if (lower === 'deploy') {
       setSelectedAttack('deploy');
+      onSelectAttack?.('deploy');
       setLines((prev) => [...prev, '[*] Vector set: Bad Deploy Regression Injection']);
     } else if (lower === 'devil' || lower === 'hack') {
       onSpeakHacker("Enter as hacker");
@@ -194,7 +200,10 @@ export const HackerVM: React.FC<HackerVMProps> = ({
               type="button"
               onClick={() => {
                 setSelectedAttack(v.id as any);
-                onLaunchAttack?.(v.id);
+                onSelectAttack?.(v.id);
+                if (isSiphoning) {
+                  onLaunchAttack?.(v.id);
+                }
                 setLines((prev) => [...prev, `[*] Armed vector: ${v.label} (${v.desc})`]);
               }}
               className={`p-1.5 rounded border text-left transition-all cursor-pointer shadow-2xs ${
@@ -245,7 +254,7 @@ export const HackerVM: React.FC<HackerVMProps> = ({
       <div className="p-3 bg-white border-t border-zinc-200 flex flex-col gap-2">
         <button
           type="button"
-          onClick={onToggleSiphon}
+          onClick={() => onToggleSiphon(selectedAttack)}
           className={`w-full py-2.5 px-3 rounded text-xs font-mono font-bold tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
             isSiphoning
               ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse shadow-[0_0_20px_rgba(220,38,38,0.4)]'
