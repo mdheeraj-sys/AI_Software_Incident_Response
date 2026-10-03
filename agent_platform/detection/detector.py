@@ -57,6 +57,16 @@ class AnomalyDetector:
         self.is_trained = False
         self.training_buffer: List[List[float]] = []
 
+        # Load persisted baseline model if available
+        model_file = Path(__file__).resolve().parent / "models" / "isolation_forest_baseline.joblib"
+        if model_file.exists():
+            try:
+                import joblib
+                self.iforest = joblib.load(model_file)
+                self.is_trained = True
+            except Exception:
+                pass
+
     def fit_baseline(self, baseline_matrix: List[List[float]]):
         """Fit Isolation Forest on clean baseline feature vectors."""
         if len(baseline_matrix) >= 10:
