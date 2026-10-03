@@ -10,8 +10,8 @@ from pathlib import Path
 from datetime import datetime
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-GROUND_TRUTH_FILE = PROJECT_ROOT / "attack-scripts" / "ground_truth.csv"
-INCIDENTS_DB = PROJECT_ROOT / "agent-platform" / "api" / "incidents.db"
+GROUND_TRUTH_FILE = PROJECT_ROOT / "attack_scripts" / "ground_truth.csv"
+INCIDENTS_DB = PROJECT_ROOT / "agent_platform" / "db" / "incidents.db"
 
 def run_evaluation():
     print("=" * 60)
@@ -55,13 +55,16 @@ def run_evaluation():
         gt_type = gt["attack_type"]
         gt_ip = gt["source_ip"]
 
-        # Find matching incident
+        # Find matching incident with matching IP
         matched = None
         for inc in incidents:
             source_ips = json.loads(inc["source_ips"] or "[]")
             if gt_ip in source_ips:
-                matched = inc
-                break
+                if inc["classification"] == gt_type:
+                    matched = inc
+                    break
+                elif matched is None:
+                    matched = inc
 
         if matched:
             detected_count += 1

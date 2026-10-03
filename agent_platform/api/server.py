@@ -31,8 +31,8 @@ from agent_platform.db.database import (
 
 # Workspace directories
 BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parent
-VICTIM_LOGS_DIR = PROJECT_ROOT / "victim-app" / "logs"
+PROJECT_ROOT = BASE_DIR.parent.parent
+VICTIM_LOGS_DIR = PROJECT_ROOT / "victim_app" / "logs"
 VICTIM_LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 ACCESS_LOG = VICTIM_LOGS_DIR / "access.log"

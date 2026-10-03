@@ -85,16 +85,16 @@ class IncidentClassifier:
         err_5xx = features.get("error_5xx_rate", 0)
         distinct_ips = features.get("distinct_ips", 1)
 
-        # 1. SQL Injection attempt
-        if has_sql_chars or ("error_5xx_rate" in features and features.get("new_template_count", 0) > 2):
-            return "sqli_attempt"
-
-        # 2. Credential Attacks
-        if failed_logins > 5:
+        # 1. Credential Attacks (Failed Logins)
+        if failed_logins >= 3:
             if len(users_attempted) > 3:
                 return "credential_stuffing"
             else:
                 return "brute_force"
+
+        # 2. SQL Injection attempt
+        if has_sql_chars or ("error_5xx_rate" in features and features.get("new_template_count", 0) > 2 and err_5xx > 0.2):
+            return "sqli_attempt"
 
         # 3. Path / Directory Scanning
         if len(paths_hit) > 8 and features.get("error_4xx_rate", 0) > 0.4:
