@@ -19,6 +19,7 @@ interface HackerTerminalProps {
 }
 
 const PRESET_QUOTES = [
+  "Enter as hacker",
   "I'm a hacker",
   "Your firewall has fallen",
   "Root access granted",
@@ -37,7 +38,7 @@ export const HackerTerminal: React.FC<HackerTerminalProps> = ({
   logLines,
   onClearLogs,
 }) => {
-  const [customInput, setCustomInput] = useState<string>("I'm a hacker");
+  const [customInput, setCustomInput] = useState<string>("Enter as hacker");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,10 +123,10 @@ export const HackerTerminal: React.FC<HackerTerminalProps> = ({
       {/* Action Row */}
       <div className="p-3 bg-zinc-950 border-t border-zinc-800 flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Main Action: Speak "I'M A HACKER" + Laugh */}
+          {/* Main Action: Speak "ENTER AS HACKER" + Laugh */}
           <button
             type="button"
-            onClick={() => onExecute("I'm a hacker")}
+            onClick={() => onExecute("Enter as hacker")}
             disabled={isExecuting || isLaughing}
             className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 py-2.5 px-4 rounded-none font-pixel text-xs tracking-wider transition-all uppercase select-none cursor-pointer border ${
               isExecuting || isLaughing
@@ -134,7 +135,7 @@ export const HackerTerminal: React.FC<HackerTerminalProps> = ({
             }`}
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            <span>SAY "I'M A HACKER" &amp; LAUGH</span>
+            <span>SAY "ENTER AS HACKER" &amp; LAUGH</span>
           </button>
 
           {/* Quick Evil Laugh */}

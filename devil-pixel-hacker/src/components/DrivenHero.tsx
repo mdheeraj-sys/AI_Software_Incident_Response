@@ -168,59 +168,8 @@ export const DrivenHero: React.FC<DrivenHeroProps> = ({
 
       {/* 3. Hero Main Stage: Spacious Middle Layout for Wire Traversal */}
       <div className="relative z-20 flex-1 w-full max-w-7xl mx-auto px-6 md:px-12 py-8 md:py-12 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-12 lg:gap-16 xl:gap-24">
-        {/* Main Content (Center Left) */}
-        <div
-          id="hero-title-anchor"
-          className={`flex-1 max-w-xl space-y-6 transition-all duration-300 ${
-            isSiphoning ? 'glitch-active' : ''
-          }`}
-        >
-          {/* Tagline Badge: Fine horizontal line + "ENGINEERED TO PERFORM" + pulsing live white dot */}
-          <div className="inline-flex items-center gap-3">
-            <span className="w-8 h-[1px] bg-white/40 inline-block" />
-            <span className="font-space text-[11px] tracking-[0.25em] text-white/80 uppercase font-semibold">
-              ENGINEERED TO PERFORM
-            </span>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-            </span>
-          </div>
-
-          {/* Main Title: Syncopate Large Wide Typography */}
-          <h1 className="font-syncopate font-bold text-4xl sm:text-5xl md:text-6xl xl:text-[4rem] leading-[1.06] tracking-[0.06em] uppercase">
-            <span className="block text-white">PRECISION</span>
-            <span className="block text-white/40">BUILT.</span>
-            <span className="block text-white">PERFORMANCE</span>
-            <span className="block text-white/40">DRIVEN.</span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="font-inter text-slate-300 text-sm sm:text-base md:text-lg max-w-lg leading-relaxed font-normal">
-            Advanced engineering solutions delivering unmatched quality, reliability, and efficiency for a stronger tomorrow.
-          </p>
-
-          {/* Action Buttons: Primary Outline with hover fill + Secondary Circular Demo Play Button */}
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-2">
-            <a
-              href="#explore"
-              className="inline-flex items-center gap-3 px-8 py-3.5 border border-white text-white font-space text-xs tracking-[0.2em] uppercase rounded-none transition-all duration-300 hover:bg-white hover:text-black group cursor-pointer shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-            >
-              <span>EXPLORE SOLUTIONS</span>
-              <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-            </a>
-
-            <button
-              onClick={() => setIsVideoModalOpen(true)}
-              className="inline-flex items-center gap-3 font-space text-xs tracking-[0.2em] text-white/90 hover:text-white uppercase transition-colors group cursor-pointer py-2"
-            >
-              <span className="w-10 h-10 rounded-full border border-white/40 group-hover:border-white group-hover:scale-110 flex items-center justify-center transition-all duration-300 bg-white/[0.04]">
-                <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
-              </span>
-              <span>SYSTEM DEMO</span>
-            </button>
-          </div>
-        </div>
+        {/* Empty Middle Space (Wire corridor / Open cyber canvas) */}
+        <div id="hero-title-anchor" className="flex-1" />
 
         {/* Spacious Middle Corridor: Cyber wires pass through this open space! */}
 

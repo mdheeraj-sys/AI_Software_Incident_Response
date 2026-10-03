@@ -1,6 +1,6 @@
 """
 Correlation Engine, Incident Classifier, and Severity Scorer.
-Reference: Parts 8 & 10 of PS-61 Architecture Document.
+Reference: Parts 8 & 10 of AI Incident Response Architecture Document.
 """
 
 import uuid
@@ -184,3 +184,4 @@ class CorrelationEngine:
             "evidence_events": correlated_events[-15:],  # Top 15 key log entries as evidence
             "severity_breakdown": sev["breakdown"]
         }
+

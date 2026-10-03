@@ -1,4 +1,4 @@
-# AI Software Incident Response Agent (PS-61)
+# AI Software Incident Response Agent
 
 An end-to-end autonomous incident response platform that ingests application telemetry, parses noisy raw logs into structured templates using a from-scratch **Drain 3.0** algorithm, detects anomalies with a combined **EWMA/MAD + Isolation Forest** model, correlates multi-service signals into unified incidents, investigates them with a **bounded-tool agent**, and gates sensitive mitigations behind **human approval** with a **tamper-proof SHA-256 hash-chained audit log**.
 

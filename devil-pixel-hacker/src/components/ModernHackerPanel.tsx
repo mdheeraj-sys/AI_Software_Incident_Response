@@ -23,6 +23,7 @@ interface ModernHackerPanelProps {
 }
 
 const PRESET_PHRASES = [
+  "Enter as hacker",
   "I'm a hacker",
   "Your firewall has fallen",
   "Root access granted",
@@ -44,7 +45,7 @@ export const ModernHackerPanel: React.FC<ModernHackerPanelProps> = ({
   glowEffect,
   onToggleGlow,
 }) => {
-  const [customText, setCustomText] = useState<string>("I'm a hacker");
+  const [customText, setCustomText] = useState<string>("Enter as hacker");
   const [showSettings, setShowSettings] = useState<boolean>(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -60,7 +61,7 @@ export const ModernHackerPanel: React.FC<ModernHackerPanelProps> = ({
       <div className="flex items-center gap-2.5">
         <button
           type="button"
-          onClick={() => onExecute("I'm a hacker")}
+          onClick={() => onExecute("Enter as hacker")}
           disabled={isExecuting || isLaughing}
           className={`flex-1 flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl font-semibold text-sm tracking-wide transition-all duration-200 select-none shadow-xl cursor-pointer ${
             isExecuting || isLaughing
@@ -69,7 +70,7 @@ export const ModernHackerPanel: React.FC<ModernHackerPanelProps> = ({
           }`}
         >
           <Play className="w-4 h-4 fill-current" />
-          <span>Say "I'm a hacker" &amp; Laugh</span>
+          <span>Say "Enter as hacker" &amp; Laugh</span>
         </button>
 
         <button

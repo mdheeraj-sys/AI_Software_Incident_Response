@@ -1,0 +1,756 @@
+{
+  "name": "AI Software Incident Response Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incident-alert",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "id": "14a04c10-0daf-4735-9e62-ffe39b8aab24",
+      "name": "Incident Alert Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        112
+      ],
+      "webhookId": "3ab545bf-7814-4ef6-8440-5cbddb17c0d7",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "L19aYQddIL3aO7Ud",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "incident_type",
+              "name": "incident_type",
+              "type": "string",
+              "value": "={{ (() => { const t = String($json.body.incident_type ?? '').toLowerCase().trim().replace(/[\\s-]+/g, '_'); return ['brute_force', 'credential_stuffing', 'ddos', 'sql_injection', 'error_spike', 'latency_spike'].includes(t) ? t : 'unknown'; })() }}"
+            },
+            {
+              "id": "endpoint",
+              "name": "endpoint",
+              "type": "string",
+              "value": "={{ String($json.body.endpoint ?? '/unknown').replace(/[^A-Za-z0-9_.\\/-]/g, '').slice(0, 200) || '/unknown' }}"
+            },
+            {
+              "id": "source_ip",
+              "name": "source_ip",
+              "type": "string",
+              "value": "={{ (() => { const ip = String($json.body.source_ip ?? '').trim(); const ok = /^(\\d{1,3}\\.){3}\\d{1,3}$/.test(ip) && ip.split('.').every(o => Number(o) <= 255); return ok ? ip : 'N/A'; })() }}"
+            },
+            {
+              "id": "anomaly_score",
+              "name": "anomaly_score",
+              "type": "string",
+              "value": "={{ Number.isFinite(Number($json.body.anomaly_score)) && $json.body.anomaly_score !== null && $json.body.anomaly_score !== '' ? String(Number($json.body.anomaly_score)) : 'N/A' }}"
+            },
+            {
+              "id": "error_count",
+              "name": "error_count",
+              "type": "string",
+              "value": "={{ Number.isFinite(Number($json.body.error_count)) && $json.body.error_count !== null && $json.body.error_count !== '' ? String(Number($json.body.error_count)) : 'N/A' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "debc1128-499e-42a6-8b39-8018853c114f",
+      "name": "Sanitize Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://api.callmebot.com/start.php",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user",
+              "value": "@Vishnu130507"
+            },
+            {
+              "name": "text",
+              "value": "={{ (\"Incident alert. \" + String($json.incident_type).replace(/_/g, \" \") + \" on endpoint \" + String($json.endpoint) + \". Source I P \" + String($json.source_ip) + \". The A I agent is investigating. Check Telegram for the approval request.\").slice(0, 250) }}"
+            },
+            {
+              "name": "lang",
+              "value": "en-GB-Standard-B"
+            },
+            {
+              "name": "rpt",
+              "value": "2"
+            },
+            {
+              "name": "cc",
+              "value": "missed"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "9f86e19e-21b1-4651-bf15-bc4da2da59a2",
+      "name": "Call On-Call Engineer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        -176
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Investigate the following incident alert:\nIncident Type: {{ $json.incident_type ?? 'unknown' }}\nTarget Endpoint: {{ $json.endpoint ?? '/unknown' }}\nSuspected IP: {{ $json.source_ip ?? 'N/A' }}\nAnomaly Score: {{ $json.anomaly_score ?? 'N/A' }}\nError Count: {{ $json.error_count ?? 'N/A' }}\n\nStep 1: Check the security runbook for recommended procedure.\nStep 2: Inspect recent deployments to see if this was triggered by a bad code release.\nStep 3: Output your Root Cause Analysis (RCA) and state clearly what mitigation action should be taken : 'block_ip', 'rate_limit', 'rollback_deploy', or 'monitor' if the evidence does not justify an active mitigation.",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are Holmes-Sec, an autonomous Incident Response and SRE AI Agent.\nYour job is to investigate incoming application incidents, query bounded tools for evidence, identify the root cause, and formulate a mitigation proposal.\n\nTools:\n- check_security_runbook: returns the runbook procedure for an incident type.\n- get_recent_deployments: returns recent code deployments.\n\nproposed_action must be exactly one of: block_ip, rate_limit, rollback_deploy, monitor.\nSet requires_human_approval to true for any action other than monitor.\nChoose monitor when evidence is weak or inconclusive.\nFill target_ip only for block_ip or rate_limit, using the suspected IP from the alert.\nFill deployment_id only for rollback_deploy, using the id returned by get_recent_deployments.\nReport confidence honestly as a number between 0.0 and 1.0 based on the evidence you found."
+        }
+      },
+      "id": "c8bcc663-31bf-4482-8394-92ef65f18871",
+      "name": "Incident Investigation Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        352,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b:free",
+        "options": {
+          "temperature": 0.1,
+          "maxRetries": 4
+        }
+      },
+      "id": "67cdc82d-83e6-49be-9d8d-d48ddf2815b5",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        128,
+        112
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "EvsmbOAalAg6HVR5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3.5-lightning:free",
+        "options": {
+          "temperature": 0.1,
+          "maxRetries": 4
+        }
+      },
+      "id": "e6e60790-eb3f-4536-9b62-24f47f6e3b5c",
+      "name": "OpenRouter Fallback Model (free)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        224,
+        336
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "EvsmbOAalAg6HVR5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Look up the security runbook procedure for an incident type. Input: the incident type, e.g. brute_force, ddos, error_spike, sql_injection.",
+        "jsCode": "const runbook = {\n  brute_force: 'Many failed logins from one IP. Recommended: block_ip for the source IP; if the source is distributed, rate_limit the endpoint.',\n  credential_stuffing: 'Failed logins across many accounts. Recommended: rate_limit the login endpoint and block_ip for the worst offenders.',\n  ddos: 'Traffic flood. Recommended: rate_limit the endpoint; block_ip if one source dominates.',\n  sql_injection: 'Injection patterns in requests. Recommended: block_ip for the source and review the endpoint.',\n  error_spike: 'Sudden 5xx increase. Check recent deployments first; if a release matches the start time, recommend rollback_deploy.',\n  latency_spike: 'Latency regression. Check recent deployments; rollback_deploy if a release matches, otherwise monitor.'\n};\nconst key = String(query || '').toLowerCase().trim().replace(/[\\s-]+/g, '_');\nfor (const k of Object.keys(runbook)) {\n  if (key.includes(k)) return k + ': ' + runbook[k];\n}\nreturn 'No exact runbook entry for \"' + query + '\". Default procedure: gather evidence, prefer monitor unless there is clear malicious traffic (block_ip / rate_limit) or a correlated bad release (rollback_deploy).';"
+      },
+      "id": "a5298f54-50b3-49cc-bdbf-9f28fe9c470f",
+      "name": "check_security_runbook",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Returns the most recent code deployments (mock data for testing). Input: optional service name or leave empty.",
+        "jsCode": "const now = Date.now();\nconst iso = (minsAgo) => new Date(now - minsAgo * 60000).toISOString();\nconst deployments = [\n  { deployment_id: 'dep-1043', service: 'auth-api', version: 'v2.14.1', deployed_at: iso(25), deployed_by: 'ci-bot', status: 'success', changes: 'Refactored login session handling' },\n  { deployment_id: 'dep-1042', service: 'payments-api', version: 'v5.3.0', deployed_at: iso(180), deployed_by: 'priya', status: 'success', changes: 'Added retry logic to payment gateway client' },\n  { deployment_id: 'dep-1041', service: 'web-frontend', version: 'v8.0.2', deployed_at: iso(720), deployed_by: 'ci-bot', status: 'success', changes: 'UI copy fixes' }\n];\nreturn JSON.stringify({ source: 'mock', deployments });"
+      },
+      "id": "74a108e5-d3e0-4416-b864-8e2cacf0c4b6",
+      "name": "get_recent_deployments",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"incident_type\": { \"type\": \"string\" },\n    \"root_cause\": { \"type\": \"string\" },\n    \"confidence\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 1, \"description\": \"Your honest confidence between 0.0 and 1.0\" },\n    \"evidence\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"proposed_action\": { \"type\": \"string\", \"enum\": [\"block_ip\", \"rate_limit\", \"rollback_deploy\", \"monitor\"] },\n    \"target_ip\": { \"type\": \"string\", \"description\": \"Only for block_ip or rate_limit; empty string otherwise\" },\n    \"deployment_id\": { \"type\": \"string\", \"description\": \"Only for rollback_deploy: the deployment to roll back; empty string otherwise\" },\n    \"requires_human_approval\": { \"type\": \"boolean\" }\n  },\n  \"required\": [\"incident_type\", \"root_cause\", \"confidence\", \"evidence\", \"proposed_action\", \"requires_human_approval\"]\n}"
+      },
+      "id": "eb914ad1-efcc-4d27-b9b1-3e1c13c1d4c4",
+      "name": "RCA Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.output.proposed_action }}",
+              "rightValue": "monitor",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "df838fb1-7b7b-457d-9fdc-c76f2ba28728",
+      "name": "Needs Mitigation?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "5580490155",
+        "message": "=INCIDENT APPROVAL NEEDED: {{ $json.output.proposed_action }} for {{ $json.output.incident_type }}\n\nHolmes-Sec proposes a mitigation:\n\nIncident type: {{ $json.output.incident_type }}\nRoot cause: {{ $json.output.root_cause }}\nConfidence: {{ $json.output.confidence }}\nEvidence: {{ ($json.output.evidence || []).join('; ') }}\nProposed action: {{ $json.output.proposed_action }}\nTarget IP: {{ $json.output.target_ip || '-' }}\nDeployment ID: {{ $json.output.deployment_id || '-' }}\n\nApprove to execute the action, or decline to stop.",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "chatApproval": true,
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 30,
+              "resumeUnit": "minutes"
+            }
+          }
+        }
+      },
+      "id": "dd4f040d-f95f-4b0d-b9b0-ac17f01a1d87",
+      "name": "Request Human Approval",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1088,
+        320
+      ],
+      "webhookId": "495b9412-cef2-4803-b97b-7c126614ebd4",
+      "credentials": {
+        "telegramApi": {
+          "id": "C49gmhPbXTrhLgBM",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "437393fb-4ee3-42d3-9169-8d778c540175",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1312,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Incident Investigation Agent').item.json.output.proposed_action }}",
+                    "rightValue": "block_ip",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $('Incident Investigation Agent').item.json.output.target_ip }}",
+                    "rightValue": "={{ $('Sanitize Alert').item.json.source_ip }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $('Sanitize Alert').item.json.source_ip }}",
+                    "rightValue": "N/A",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "block_ip"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Incident Investigation Agent').item.json.output.proposed_action }}",
+                    "rightValue": "rate_limit",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "rate_limit"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Incident Investigation Agent').item.json.output.proposed_action }}",
+                    "rightValue": "rollback_deploy",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "rollback_deploy"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4242ced-f862-46d7-bf94-5a5d3b3f5f5f",
+      "name": "Route Mitigation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1616,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'block_ip', target_ip: $('Sanitize Alert').item.json.source_ip, endpoint: $('Sanitize Alert').item.json.endpoint, incident_type: $('Incident Investigation Agent').item.json.output.incident_type, root_cause: $('Incident Investigation Agent').item.json.output.root_cause }) }}",
+        "options": {}
+      },
+      "id": "ef6c7982-4290-4e62-bcd4-0788b6e1b7b2",
+      "name": "Block IP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1840,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'rate_limit', target_ip: $('Incident Investigation Agent').item.json.output.target_ip, endpoint: $('Sanitize Alert').item.json.endpoint, incident_type: $('Incident Investigation Agent').item.json.output.incident_type, root_cause: $('Incident Investigation Agent').item.json.output.root_cause }) }}",
+        "options": {}
+      },
+      "id": "5d6a38e1-6294-412d-bf46-7ab1940e4a78",
+      "name": "Apply Rate Limit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1840,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'rollback_deploy', deployment_id: $('Incident Investigation Agent').item.json.output.deployment_id, endpoint: $('Sanitize Alert').item.json.endpoint, incident_type: $('Incident Investigation Agent').item.json.output.incident_type, root_cause: $('Incident Investigation Agent').item.json.output.root_cause }) }}",
+        "options": {}
+      },
+      "id": "5c62fd04-14c2-4d94-b345-83b2e34d12cd",
+      "name": "Rollback Deployment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1840,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "type": "string",
+              "value": "rejected_or_timed_out"
+            },
+            {
+              "id": "rca",
+              "name": "rca",
+              "type": "object",
+              "value": "={{ $('Incident Investigation Agent').item.json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1fa76772-ad2c-452d-b134-ae189e3defa1",
+      "name": "Log Rejected",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1728,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "type": "string",
+              "value": "monitoring"
+            },
+            {
+              "id": "rca",
+              "name": "rca",
+              "type": "object",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9aa75e23-1e06-4cf9-8207-b196f7bbf27f",
+      "name": "Log Monitor Only",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        16
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Incident Alert Webhook": {
+      "main": [
+        [
+          {
+            "node": "Sanitize Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitize Alert": {
+      "main": [
+        [
+          {
+            "node": "Call On-Call Engineer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Incident Investigation Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incident Investigation Agent": {
+      "main": [
+        [
+          {
+            "node": "Needs Mitigation?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Incident Investigation Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Fallback Model (free)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Incident Investigation Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "check_security_runbook": {
+      "ai_tool": [
+        [
+          {
+            "node": "Incident Investigation Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_recent_deployments": {
+      "ai_tool": [
+        [
+          {
+            "node": "Incident Investigation Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RCA Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Incident Investigation Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Mitigation?": {
+      "main": [
+        [
+          {
+            "node": "Request Human Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Monitor Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Human Approval": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Route Mitigation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Mitigation": {
+      "main": [
+        [
+          {
+            "node": "Block IP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Apply Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rollback Deployment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9c42caec-7829-47da-8775-cda80cda40f3",
+  "meta": {
+    "instanceId": "71f6e0c1029e7da17b2fcd672e90b16d839dc89bbfc69a39d548af18900d38ad"
+  },
+  "nodeGroups": [
+    {
+      "id": "dfc1246f-7fd9-4041-9416-e2b74a04dd42",
+      "name": "Investigate incident",
+      "nodeIds": [
+        "debc1128-499e-42a6-8b39-8018853c114f",
+        "9f86e19e-21b1-4651-bf15-bc4da2da59a2",
+        "c8bcc663-31bf-4482-8394-92ef65f18871",
+        "67cdc82d-83e6-49be-9d8d-d48ddf2815b5",
+        "e6e60790-eb3f-4536-9b62-24f47f6e3b5c",
+        "a5298f54-50b3-49cc-bdbf-9f28fe9c470f",
+        "74a108e5-d3e0-4416-b864-8e2cacf0c4b6",
+        "eb914ad1-efcc-4d27-b9b1-3e1c13c1d4c4",
+        "df838fb1-7b7b-457d-9fdc-c76f2ba28728"
+      ],
+      "description": "Rings the on-call engineer on every alert, then checks the runbook and recent releases, writes the root cause, and decides if action is needed"
+    },
+    {
+      "id": "8b3cd0dd-3f6d-4b84-8793-0699fb18bdfb",
+      "name": "Get human approval",
+      "nodeIds": [
+        "dd4f040d-f95f-4b0d-b9b0-ac17f01a1d87",
+        "437393fb-4ee3-42d3-9169-8d778c540175"
+      ],
+      "description": "Sends the on-call approver the RCA on Telegram and waits up to 30 minutes for approve or decline"
+    },
+    {
+      "id": "fb13f4a0-b7b4-4f88-ba07-0d27e15a2b45",
+      "name": "Apply mitigation",
+      "nodeIds": [
+        "d4242ced-f862-46d7-bf94-5a5d3b3f5f5f",
+        "ef6c7982-4290-4e62-bcd4-0788b6e1b7b2",
+        "5d6a38e1-6294-412d-bf46-7ab1940e4a78",
+        "5c62fd04-14c2-4d94-b345-83b2e34d12cd"
+      ],
+      "description": "Runs the approved fix: block the IP, rate limit the endpoint, or roll back the release"
+    }
+  ],
+  "id": "JRXH3aGYdz2i1YR3",
+  "tags": []
+}

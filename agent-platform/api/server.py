@@ -3,7 +3,7 @@ Agent Platform Backend API and Orchestrator.
 Runs the streaming pipeline:
 Log Tailing -> Drain Parser -> Anomaly Detector -> Correlation Engine -> Agent Investigation -> Database & Audit Log
 Provides REST & WebSocket APIs for the Command Center Dashboard.
-Reference: Parts 14, 15, and 22.2 of PS-61 Architecture Document.
+Reference: Parts 14, 15, and 22.2 of AI Incident Response Architecture Document.
 """
 
 import os
@@ -589,3 +589,4 @@ def get_dashboard_html():
     if dashboard_file.exists():
         return dashboard_file.read_text(encoding="utf-8")
     return "<h1>Dashboard Loading...</h1>"
+

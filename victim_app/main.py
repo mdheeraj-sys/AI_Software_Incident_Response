@@ -11,6 +11,10 @@ from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # Directories and paths
 BASE_DIR = Path(__file__).resolve().parent
@@ -375,18 +379,84 @@ def fault_reset():
     return {"message": "All injected faults reset to normal."}
 
 # ----------------- Remediations Applied by Agent/Human -----------------
+class RemediateIPRequest(BaseModel):
+    ip: Optional[str] = None
+    target_ip: Optional[str] = None
+    action: Optional[str] = None
+
 @app.post("/internal/remediate/block_ip")
-def remediate_block_ip(ip: str):
-    FAULT_STATE["blocked_ips"].add(ip)
-    return {"message": f"IP {ip} successfully added to firewall blocklist."}
+@app.get("/internal/remediate/block_ip")
+async def remediate_block_ip(request: Request, ip: Optional[str] = None):
+    target_ip = ip
+    if not target_ip:
+        try:
+            body = await request.json()
+            target_ip = body.get("target_ip") or body.get("ip")
+        except Exception:
+            pass
+
+    if not target_ip:
+        target_ip = request.client.host if request.client and request.client.host not in ("127.0.0.1", "localhost") else "119.235.52.196"
+
+    FAULT_STATE["blocked_ips"].add(target_ip)
+    print(f"\n==================================================")
+    print(f"  [!] AGENT WALL ACTIVATED: FIREWALL BLOCKED IP {target_ip}")
+    print(f"  Any subsequent traffic from {target_ip} will receive HTTP 403 Forbidden!")
+    print(f"==================================================\n")
+
+    log_json_line(DEPLOY_LOG_FILE, {
+        "timestamp": get_iso_now(),
+        "source": "firewall",
+        "service": "security_agent",
+        "raw": f"AGENT MITIGATION EXECUTED: Blocked IP {target_ip}",
+        "fields": {"action": "block_ip", "ip": target_ip, "status": "blocked"}
+    })
+
+    return {
+        "status": "success",
+        "action": "block_ip",
+        "blocked_ip": target_ip,
+        "message": f"IP {target_ip} successfully added to active firewall blocklist. Real-time wall engaged."
+    }
 
 @app.post("/internal/remediate/unblock_ip")
-def remediate_unblock_ip(ip: str):
-    FAULT_STATE["blocked_ips"].discard(ip)
-    return {"message": f"IP {ip} removed from firewall blocklist."}
+@app.get("/internal/remediate/unblock_ip")
+async def remediate_unblock_ip(request: Request, ip: Optional[str] = None):
+    target_ip = ip
+    if not target_ip:
+        try:
+            body = await request.json()
+            target_ip = body.get("target_ip") or body.get("ip")
+        except Exception:
+            pass
+
+    if target_ip:
+        FAULT_STATE["blocked_ips"].discard(target_ip)
+    else:
+        FAULT_STATE["blocked_ips"].clear()
+
+    return {"status": "success", "message": f"IP {target_ip or 'ALL'} removed from firewall blocklist."}
+
+@app.get("/internal/client_ip")
+async def get_client_ip(request: Request):
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    elif request.client and request.client.host not in ("127.0.0.1", "localhost", "::1"):
+        client_ip = request.client.host
+    else:
+        # Fallback to server's public IP
+        try:
+            import urllib.request
+            with urllib.request.urlopen("https://api.ipify.org", timeout=2.0) as resp:
+                client_ip = resp.read().decode("utf-8").strip()
+        except Exception:
+            client_ip = "119.235.52.196"
+
+    return {"ip": client_ip, "timestamp": get_iso_now()}
 
 @app.post("/internal/remediate/rate_limit_ip")
-def remediate_rate_limit(ip: str, duration_seconds: int = 600):
+def remediate_rate_limit(ip: str = "119.235.52.196", duration_seconds: int = 600):
     FAULT_STATE["rate_limited_ips"][ip] = time.time() + duration_seconds
     return {"message": f"IP {ip} rate limited for {duration_seconds}s."}
 
@@ -394,3 +464,80 @@ def remediate_rate_limit(ip: str, duration_seconds: int = 600):
 def remediate_disable_account(user: str):
     FAULT_STATE["disabled_users"].add(user)
     return {"message": f"User account '{user}' disabled."}
+
+# ----------------- n8n Webhook Backend Relay -----------------
+class IncidentAlertDispatchModel(BaseModel):
+    incident_type: str = "brute_force"
+    source_ip: str = "119.235.52.196"
+    endpoint: str = "/api/v1/auth/login"
+    anomaly_score: float = 0.93
+    error_count: int = 250
+
+class ConfigureN8nAuthModel(BaseModel):
+    header_name: str
+    header_value: str
+    webhook_url: Optional[str] = None
+
+@app.post("/api/configure-n8n-auth")
+def configure_n8n_auth(cfg: ConfigureN8nAuthModel):
+    os.environ["N8N_HEADER_NAME"] = cfg.header_name.strip()
+    os.environ["N8N_HEADER_VALUE"] = cfg.header_value.strip()
+    if cfg.webhook_url:
+        os.environ["N8N_WEBHOOK_URL"] = cfg.webhook_url.strip()
+    return {
+        "status": "success",
+        "header_name": os.environ.get("N8N_HEADER_NAME"),
+        "header_value_set": bool(os.environ.get("N8N_HEADER_VALUE")),
+        "webhook_url": os.environ.get("N8N_WEBHOOK_URL", "https://craftsman.app.n8n.cloud/webhook/incident-alert")
+    }
+
+@app.post("/api/dispatch-incident")
+async def dispatch_incident_to_n8n(alert: IncidentAlertDispatchModel):
+    """
+    Backend relay for n8n Webhook.
+    Protects the secret header from being exposed in browser client code.
+    Sends exact required JSON payload structure to n8n webhook.
+    """
+    webhook_url = os.environ.get("N8N_WEBHOOK_URL", "https://craftsman.app.n8n.cloud/webhook/incident-alert")
+    header_name = os.environ.get("N8N_HEADER_NAME", "")
+    header_val = os.environ.get("N8N_HEADER_VALUE", "")
+
+    headers = {"Content-Type": "application/json"}
+    if header_name and header_val:
+        headers[header_name] = header_val
+
+    # Normalize incident_type to allowed values:
+    valid_types = ['brute_force', 'credential_stuffing', 'ddos', 'sql_injection', 'error_spike', 'latency_spike']
+    norm_type = alert.incident_type.lower().strip().replace("-", "_").replace(" ", "_")
+    final_type = norm_type if norm_type in valid_types else "unknown"
+
+    payload_data = {
+        "incident_type": final_type,
+        "source_ip": alert.source_ip,
+        "endpoint": alert.endpoint,
+        "anomaly_score": alert.anomaly_score,
+        "error_count": alert.error_count
+    }
+
+    try:
+        import requests
+        resp = requests.post(webhook_url, json=payload_data, headers=headers, timeout=8)
+        return {
+            "success": resp.status_code in (200, 201),
+            "status_code": resp.status_code,
+            "response": resp.text,
+            "header_sent": bool(header_name and header_val),
+            "header_name": header_name or "(none)",
+            "payload": payload_data
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "status_code": 0,
+            "error": str(e),
+            "header_sent": bool(header_name and header_val),
+            "payload": payload_data
+        }
+
+
+

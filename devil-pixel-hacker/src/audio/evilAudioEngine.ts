@@ -328,7 +328,7 @@ class EvilAudioEngine {
 
   // Full evil recitation: Speaks phrase with demonic pitch modulation + follows with evil laugh!
   public speakSinisterPhrase(
-    phrase: string = "I'm a hacker",
+    phrase: string = "Enter as hacker",
     options?: {
       pitchShift?: number; // 0.1 to 1.0 (default 0.25)
       rate?: number; // 0.5 to 1.5 (default 0.8)

@@ -1,8 +1,6 @@
-# Dependencies
+# Node / Frontend
 node_modules/
 package-lock.json
-
-# Build outputs
 dist/
 build/
 coverage/
@@ -11,17 +9,30 @@ coverage/
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 .pytest_cache/
 .coverage
+htmlcov/
 .venv/
 venv/
 ENV/
+env/
 
-# Environment and secrets
+# Environment Variables & Secrets
+.env
 .env*.local
 .env.local
 
-# Logs and OS
+# Databases & Runtime State
+*.db
+*.sqlite3
+victim.db
+victim_app/victim.db
+
+# Logs & Temporary Files
 *.log
+logs/
+victim_app/logs/*.log
+agent_platform/victim-app/logs/*.log
 .DS_Store
 Thumbs.db

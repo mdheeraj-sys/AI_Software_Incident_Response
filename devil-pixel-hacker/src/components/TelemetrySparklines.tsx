@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
+import { Activity, Clock, Users, ArrowUpRight } from 'lucide-react';
 
 interface TelemetrySparklinesProps {
   isSiphoning?: boolean;
@@ -12,8 +13,8 @@ interface TelemetrySparklinesProps {
 
 interface DataPoint {
   time: number;
-  tolerance: number;
-  efficiency: number;
+  throughput: number;
+  latency: number;
 }
 
 export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ isSiphoning = false }) => {
@@ -23,41 +24,41 @@ export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ isSiph
     for (let i = 20; i >= 0; i--) {
       initial.push({
         time: now - i * 1200,
-        tolerance: 0.0009 + Math.random() * 0.0003,
-        efficiency: 99.6 + Math.random() * 0.35,
+        throughput: 240 + Math.floor(Math.random() * 25),
+        latency: 12.5 + Math.random() * 2.5,
       });
     }
     return initial;
   });
 
-  const [currentTolerance, setCurrentTolerance] = useState<string>('±0.0010');
-  const [currentEfficiency, setCurrentEfficiency] = useState<string>('99.8%');
+  const [currentThroughput, setCurrentThroughput] = useState<string>('248 req/s');
+  const [currentLatency, setCurrentLatency] = useState<string>('14.2 ms');
 
   // Real-time telemetry feed updater
   useEffect(() => {
     const interval = setInterval(() => {
       setData((prev) => {
         const last = prev[prev.length - 1];
-        let newTol: number;
-        let newEff: number;
+        let newThroughput: number;
+        let newLatency: number;
 
         if (isSiphoning) {
-          // Erratic fluctuations during hacker cyber siphon
-          newTol = 0.0005 + Math.random() * 0.0035;
-          newEff = 88.0 + Math.random() * 11.5;
+          // Surge during malicious attack traffic / siphon
+          newThroughput = 1450 + Math.floor(Math.random() * 650);
+          newLatency = 380.0 + Math.random() * 140.0;
         } else {
-          // Normal nominal precision oscillations
-          newTol = 0.00085 + Math.random() * 0.0003;
-          newEff = 99.55 + Math.random() * 0.35;
+          // Normal nominal student traffic oscillations
+          newThroughput = 230 + Math.floor(Math.random() * 35);
+          newLatency = 13.0 + Math.random() * 3.0;
         }
 
-        setCurrentTolerance(`±${newTol.toFixed(4)}`);
-        setCurrentEfficiency(`${newEff.toFixed(1)}%`);
+        setCurrentThroughput(`${newThroughput} req/s`);
+        setCurrentLatency(`${newLatency.toFixed(1)} ms`);
 
         const nextPoint: DataPoint = {
           time: (last?.time || Date.now()) + 1200,
-          tolerance: newTol,
-          efficiency: newEff,
+          throughput: newThroughput,
+          latency: newLatency,
         };
 
         return [...prev.slice(1), nextPoint];
@@ -68,44 +69,44 @@ export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ isSiph
   }, [isSiphoning]);
 
   return (
-    <div className="space-y-4">
-      {/* 1. TOLERANCE REAL-TIME SPARKLINES */}
-      <div className="space-y-1.5">
+    <div className="space-y-3.5">
+      {/* 1. HTTP REQUEST THROUGHPUT STREAM */}
+      <div className="space-y-1">
         <div className="flex items-center justify-between text-xs font-mono">
-          <span className="text-white/60 flex items-center gap-1.5">
+          <span className="text-zinc-600 font-medium flex items-center gap-1.5">
             <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isSiphoning ? 'bg-red-400 animate-ping' : 'bg-white/80'
+              className={`w-2 h-2 rounded-full ${
+                isSiphoning ? 'bg-rose-500 animate-ping' : 'bg-cyan-600'
               }`}
             />
-            TOLERANCE STREAM
+            HTTP TRAFFIC THROUGHPUT
           </span>
           <span
             className={`font-semibold font-mono tracking-wider transition-colors ${
-              isSiphoning ? 'text-red-400 animate-pulse' : 'text-white'
+              isSiphoning ? 'text-rose-600 animate-pulse font-bold' : 'text-zinc-900'
             }`}
           >
-            {currentTolerance} mm
+            {currentThroughput}
           </span>
         </div>
 
         {/* Recharts Area Sparkline */}
-        <div className="h-10 w-full bg-white/[0.02] border border-white/10 rounded-sm overflow-hidden p-0.5">
+        <div className="h-10 w-full bg-zinc-50 border border-zinc-200 rounded-sm overflow-hidden p-0.5 shadow-2xs">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
               <defs>
-                <linearGradient id="tolGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="#FFFFFF" stopOpacity={0.02} />
+                <linearGradient id="tpGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0284c7" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#0284c7" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <YAxis domain={['auto', 'auto']} hide />
               <Area
                 type="monotone"
-                dataKey="tolerance"
-                stroke={isSiphoning ? '#F87171' : '#FFFFFF'}
-                strokeWidth={1.5}
-                fill="url(#tolGrad)"
+                dataKey="throughput"
+                stroke={isSiphoning ? '#DC2626' : '#0284c7'}
+                strokeWidth={1.75}
+                fill="url(#tpGrad)"
                 isAnimationActive={false}
               />
             </AreaChart>
@@ -113,43 +114,43 @@ export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ isSiph
         </div>
       </div>
 
-      {/* 2. EFFICIENCY INDEX REAL-TIME SPARKLINES */}
-      <div className="space-y-1.5">
+      {/* 2. SERVER RESPONSE LATENCY REAL-TIME SPARKLINES */}
+      <div className="space-y-1">
         <div className="flex items-center justify-between text-xs font-mono">
-          <span className="text-white/60 flex items-center gap-1.5">
+          <span className="text-zinc-600 font-medium flex items-center gap-1.5">
             <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isSiphoning ? 'bg-red-400 animate-ping' : 'bg-emerald-400 animate-pulse'
+              className={`w-2 h-2 rounded-full ${
+                isSiphoning ? 'bg-rose-500 animate-ping' : 'bg-emerald-600 animate-pulse'
               }`}
             />
-            EFFICIENCY INDEX
+            PORTAL LATENCY (P99)
           </span>
           <span
             className={`font-semibold font-mono tracking-wider transition-colors ${
-              isSiphoning ? 'text-red-400 animate-pulse' : 'text-emerald-400'
+              isSiphoning ? 'text-rose-600 animate-pulse font-bold' : 'text-emerald-700'
             }`}
           >
-            {currentEfficiency}
+            {currentLatency}
           </span>
         </div>
 
         {/* Recharts Emerald Sparkline */}
-        <div className="h-10 w-full bg-emerald-950/10 border border-emerald-500/20 rounded-sm overflow-hidden p-0.5">
+        <div className="h-10 w-full bg-emerald-50/60 border border-emerald-200 rounded-sm overflow-hidden p-0.5 shadow-2xs">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
               <defs>
-                <linearGradient id="effGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.7} />
-                  <stop offset="100%" stopColor="#10B981" stopOpacity={0.05} />
+                <linearGradient id="latGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#059669" stopOpacity={0.45} />
+                  <stop offset="100%" stopColor="#059669" stopOpacity={0.03} />
                 </linearGradient>
               </defs>
               <YAxis domain={['auto', 'auto']} hide />
               <Area
                 type="monotone"
-                dataKey="efficiency"
-                stroke={isSiphoning ? '#EF4444' : '#10B981'}
+                dataKey="latency"
+                stroke={isSiphoning ? '#DC2626' : '#059669'}
                 strokeWidth={1.75}
-                fill="url(#effGrad)"
+                fill="url(#latGrad)"
                 isAnimationActive={false}
               />
             </AreaChart>

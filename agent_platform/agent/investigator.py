@@ -1,6 +1,6 @@
 """
 Agentic Investigation Layer with Bounded Toolset and Evidence Validation.
-Reference: Part 12 & Part 13 of PS-61 Architecture Document.
+Reference: Part 12 & Part 13 of AI Incident Response Architecture Document.
 """
 
 import os
@@ -294,3 +294,4 @@ class ActionExecutor:
                 return {"error": f"Unknown action type: {action_type}"}
         except Exception as e:
             return {"error": f"Executor failed to contact victim service: {str(e)}"}
+

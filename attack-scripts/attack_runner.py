@@ -1,6 +1,6 @@
 """
 Attack Catalog & Ground-Truth Test Runner.
-Reference: Part 4 and Part 21 of PS-61 Architecture Document.
+Autonomous AI Incident Response Testbed.
 
 Simulates:
 1. Credential Brute Force attack on /login
@@ -15,6 +15,7 @@ import requests
 import csv
 from datetime import datetime, timezone
 from pathlib import Path
+from attack_scripts.cloud_attacker import get_real_public_ip
 
 VICTIM_URL = "http://127.0.0.1:8000"
 GROUND_TRUTH_LOG = Path(__file__).resolve().parent / "ground_truth.csv"
@@ -31,7 +32,8 @@ def record_ground_truth(attack_type: str, start_time: str, end_time: str, source
         writer.writerow([attack_type, start_time, end_time, source_ip, endpoint, tool])
 
 # 1. Credential Brute Force
-def run_brute_force(target_user: str = "admin", attempts: int = 25, source_ip: str = "10.10.10.11"):
+def run_brute_force(target_user: str = "admin", attempts: int = 25, source_ip: str = None):
+    source_ip = source_ip or get_real_public_ip()
     print(f"\n[!] Launching Credential Brute Force against {target_user} from IP {source_ip}...")
     start_time = get_iso_now()
     session = requests.Session()
@@ -54,7 +56,8 @@ def run_brute_force(target_user: str = "admin", attempts: int = 25, source_ip: s
     record_ground_truth("brute_force", start_time, end_time, source_ip, "/login", "hydra_sim")
 
 # 2. SQL Injection Attempt
-def run_sqli_attack(source_ip: str = "10.10.10.15"):
+def run_sqli_attack(source_ip: str = None):
+    source_ip = source_ip or get_real_public_ip()
     print(f"\n[!] Launching SQL Injection Probes against /search from IP {source_ip}...")
     start_time = get_iso_now()
     session = requests.Session()
@@ -82,7 +85,8 @@ def run_sqli_attack(source_ip: str = "10.10.10.15"):
     record_ground_truth("sqli_attempt", start_time, end_time, source_ip, "/search", "sqlmap_sim")
 
 # 3. Path / Directory Scanning
-def run_directory_scan(source_ip: str = "10.10.10.20"):
+def run_directory_scan(source_ip: str = None):
+    source_ip = source_ip or get_real_public_ip()
     print(f"\n[!] Launching Directory Enumeration Scan from IP {source_ip}...")
     start_time = get_iso_now()
     session = requests.Session()

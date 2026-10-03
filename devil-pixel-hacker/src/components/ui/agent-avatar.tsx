@@ -25,7 +25,7 @@ export type AvatarColor =
   | "turquoise"
   | "violet";
 
-export type AvatarSize = "sm" | "md" | "lg" | "xl";
+export type AvatarSize = "sm" | "md" | "lg" | "xl" | "2xl";
 export type AvatarShape = "circle" | "square" | "squircle";
 
 export interface AgentAvatarProps {
@@ -281,6 +281,14 @@ const SIZE: Record<
     eyeY: "-translate-y-1.5",
     hudRadius: 80,
     wrapper: "size-44",
+  },
+  "2xl": {
+    orb: "size-48",
+    eye: "w-6 h-9",
+    eyeGap: "gap-8",
+    eyeY: "-translate-y-2",
+    hudRadius: 120,
+    wrapper: "size-64",
   },
 };
 

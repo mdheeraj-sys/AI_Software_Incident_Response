@@ -3,7 +3,7 @@ Agent Platform Backend API and Orchestrator.
 Runs the streaming pipeline:
 Log Tailing -> Drain Parser -> Anomaly Detector -> Correlation Engine -> Agent Investigation -> Database & Audit Log
 Provides REST & WebSocket APIs for the Command Center Dashboard.
-Reference: Parts 14, 15, and 22.2 of PS-61 Architecture Document.
+Reference: Parts 14, 15, and 22.2 of AI Incident Response Architecture Document.
 """
 
 import os
@@ -38,6 +38,8 @@ VICTIM_LOGS_DIR.mkdir(parents=True, exist_ok=True)
 ACCESS_LOG = VICTIM_LOGS_DIR / "access.log"
 APP_LOG = VICTIM_LOGS_DIR / "app.log"
 AUTH_LOG = VICTIM_LOGS_DIR / "auth.log"
+
+N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL", "https://craftsman.app.n8n.cloud/webhook/incident-alert")
 
 app = FastAPI(title="AI Incident Response Agent Platform", version="1.0.0")
 
@@ -382,6 +384,33 @@ async def handle_new_incident(candidate: dict):
         }
     })
 
+    # 8. Dispatch Alert to n8n AI Agent Webhook
+    if N8N_WEBHOOK_URL:
+        def _post_n8n():
+            try:
+                import urllib.request
+                endpoint_target = candidate.get("affected_services", ["/"])[0] if candidate.get("affected_services") else "/api"
+                source_ip_val = candidate["source_ips"][0] if candidate.get("source_ips") else "10.10.10.11"
+                payload = {
+                    "incident_id": incident_id,
+                    "incident_type": candidate["classification"],
+                    "endpoint": endpoint_target,
+                    "source_ip": source_ip_val,
+                    "anomaly_score": candidate.get("severity_score", 0.95),
+                    "error_count": len(candidate.get("evidence_events", []))
+                }
+                body_bytes = json.dumps({"body": payload, **payload}).encode("utf-8")
+                req = urllib.request.Request(
+                    N8N_WEBHOOK_URL,
+                    data=body_bytes,
+                    headers={"Content-Type": "application/json"}
+                )
+                urllib.request.urlopen(req, timeout=5)
+            except Exception as e:
+                print(f"[!] Info: Note when forwarding to n8n webhook: {e}")
+
+        asyncio.get_event_loop().run_in_executor(None, _post_n8n)
+
 @app.on_event("startup")
 async def startup_event():
     # Start ingestion tailing in background task
@@ -619,3 +648,4 @@ def get_dashboard_html():
     if dashboard_file.exists():
         return dashboard_file.read_text(encoding="utf-8")
     return "<h1>Dashboard Loading...</h1>"
+

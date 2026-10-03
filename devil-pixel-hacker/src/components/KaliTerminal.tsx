@@ -94,7 +94,7 @@ export const KaliTerminal: React.FC<KaliTerminalProps> = ({
         setLines((prev) => [...prev, '[*] Wires are not currently attached.']);
       }
     } else if (lower === 'devil' || lower === 'hack') {
-      onSpeakHacker("I'm a hacker");
+      onSpeakHacker("Enter as hacker");
     } else if (lower === 'laugh') {
       onTriggerLaugh();
     } else if (lower === 'scan') {
@@ -237,11 +237,11 @@ export const KaliTerminal: React.FC<KaliTerminalProps> = ({
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => onSpeakHacker("I'm a hacker")}
+            onClick={() => onSpeakHacker("Enter as hacker")}
             className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
           >
             <Play className="w-2.5 h-2.5 text-emerald-400 fill-current" />
-            <span>"I'm a hacker"</span>
+            <span>"Enter as hacker"</span>
           </button>
           <button
             type="button"

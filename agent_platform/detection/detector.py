@@ -1,6 +1,6 @@
 """
 Anomaly Detection Subsystem (Two-Tier Approach: EWMA/MAD + Isolation Forest).
-Reference: Part 7 of PS-61 Architecture Document.
+Reference: Part 7 of AI Incident Response Architecture Document.
 """
 
 import math
@@ -134,3 +134,4 @@ class AnomalyDetector:
             "iforest_score": round(iforest_score, 4),
             "reason": "; ".join(reasons) if reasons else "Normal baseline traffic"
         }
+

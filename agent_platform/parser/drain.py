@@ -1,6 +1,6 @@
 """
 Drain 3.0 Tree-based Log Parser implemented from scratch.
-Reference: Part 6 of PS-61 Architecture Document.
+Reference: Part 6 of AI Incident Response Architecture Document.
 
 Drain parses streaming log messages into fixed templates by constructing a prefix tree
 branching on token count and initial tokens, then comparing candidate leaf templates
@@ -134,3 +134,4 @@ class DrainParser:
         if template_id in self.templates:
             return " ".join(self.templates[template_id])
         return None
+

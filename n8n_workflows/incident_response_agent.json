@@ -1,0 +1,194 @@
+{
+  "name": "AI Software Incident Response Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incident-alert",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "id": "webhook-trigger",
+      "name": "Incident Alert Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Investigate the following incident alert:\nIncident Type: {{ $json.body.incident_type || 'Unknown' }}\nTarget Endpoint: {{ $json.body.endpoint || '/unknown' }}\nSuspected IP: {{ $json.body.source_ip || 'N/A' }}\nAnomaly Score: {{ $json.body.anomaly_score || 'N/A' }}\nError Count: {{ $json.body.error_count || 'N/A' }}\n\nStep 1: Check the security runbook for recommended procedure.\nStep 2: Inspect recent deployments to see if this was triggered by a bad code release.\nStep 3: Output your Root Cause Analysis (RCA) and state clearly what mitigation action should be taken (e.g. 'block_ip', 'rate_limit', or 'rollback_deploy').",
+        "options": {
+          "systemMessage": "You are Holmes-Sec, an autonomous Incident Response and SRE AI Agent.\nYour job is to investigate incoming application incidents, query bounded tools for evidence, identify the root cause, and formulate a mitigation proposal.\n\nAlways follow this output format:\n{\n  \"incident_type\": \"...\",\n  \"root_cause\": \"...\",\n  \"confidence\": 0.95,\n  \"evidence\": [\"...\"],\n  \"proposed_action\": \"block_ip | rate_limit | rollback_deploy | monitor\",\n  \"target_ip\": \"...\",\n  \"requires_human_approval\": true\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [240, 0],
+      "id": "ai-agent",
+      "name": "Incident Investigation Agent"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [160, 220],
+      "id": "openai-model",
+      "name": "LLM (OpenAI / Claude / Gemini)"
+    },
+    {
+      "parameters": {
+        "name": "get_security_runbook",
+        "description": "Returns standard remediation runbook and procedures for a given incident type like brute_force, sqli, scanning, or bad_deploy.",
+        "jsCode": "const incidentType = (query || '').toLowerCase();\nif (incidentType.includes('brute') || incidentType.includes('auth')) {\n  return JSON.stringify({\n    runbook: 'Brute Force Attack Mitigation',\n    procedure: '1. Verify failed login spikes. 2. Propose blocking IP at firewall. 3. Audit targeted accounts.'\n  });\n} else if (incidentType.includes('sql') || incidentType.includes('sqli')) {\n  return JSON.stringify({\n    runbook: 'SQL Injection Probing Mitigation',\n    procedure: '1. Identify offending SQL syntax in URI. 2. Block offending IP immediately. 3. Patch vulnerable endpoint.'\n  });\n} else if (incidentType.includes('deploy') || incidentType.includes('500')) {\n  return JSON.stringify({\n    runbook: 'Bad Deploy Regression Mitigation',\n    procedure: '1. Check recent release tag. 2. Verify 500 error spike coincides with release. 3. Propose rollback.'\n  });\n}\nreturn JSON.stringify({ runbook: 'General Incident Investigation', procedure: 'Monitor logs and rate limit IP.' });"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1,
+      "position": [280, 220],
+      "id": "tool-runbook",
+      "name": "Tool: Security Runbooks"
+    },
+    {
+      "parameters": {
+        "name": "check_recent_deployments",
+        "description": "Checks deployment history to see if an error spike was caused by a software release or bad code push.",
+        "jsCode": "return JSON.stringify([\n  { release_id: 'v2.4.1', deployed_at: '10 mins ago', author: 'dev-team', status: 'healthy' },\n  { release_id: 'v2.4.0', deployed_at: '2 days ago', author: 'release-bot', status: 'stable' }\n]);"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1,
+      "position": [400, 220],
+      "id": "tool-deploys",
+      "name": "Tool: Check Deploys"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-approval",
+              "leftValue": "={{ $json.output.includes('block_ip') || $json.output.includes('rollback') }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [580, 0],
+      "id": "approval-gate",
+      "name": "Sensitive Action Gating"
+    },
+    {
+      "parameters": {
+        "notice": "⚠️ Sensitive Action Proposed (Tier 3: Block IP or Rollback Deploy). Requires human confirmation before execution.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [840, -80],
+      "id": "human-review-queue",
+      "name": "Human Approval Required"
+    },
+    {
+      "parameters": {
+        "notice": "Reversible / Read-only action auto-approved and logged.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [840, 100],
+      "id": "auto-approved",
+      "name": "Auto-Execute Safe Action"
+    }
+  ],
+  "connections": {
+    "Incident Alert Webhook": {
+      "main": [
+        [
+          {
+            "node": "Incident Investigation Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM (OpenAI / Claude / Gemini)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Incident Investigation Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Security Runbooks": {
+      "ai_tool": [
+        [
+          {
+            "node": "Incident Investigation Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Check Deploys": {
+      "ai_tool": [
+        [
+          {
+            "node": "Incident Investigation Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incident Investigation Agent": {
+      "main": [
+        [
+          {
+            "node": "Sensitive Action Gating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sensitive Action Gating": {
+      "main": [
+        [
+          {
+            "node": "Human Approval Required",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auto-Execute Safe Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

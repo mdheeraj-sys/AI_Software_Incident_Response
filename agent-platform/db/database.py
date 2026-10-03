@@ -1,6 +1,6 @@
 """
 Incident Data Model, Hash-Chained Audit Trail, and SQLite Database.
-Reference: Part 9 & Part 14 of PS-61 Architecture Document.
+Reference: Part 9 & Part 14 of AI Incident Response Architecture Document.
 """
 
 import json
@@ -149,3 +149,4 @@ def log_audit_event(incident_id: Optional[str], actor: str, action: str, detail:
     return this_hash
 
 init_incident_db()
+

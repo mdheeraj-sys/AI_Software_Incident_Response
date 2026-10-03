@@ -2,7 +2,7 @@
 Pre-training & Baseline Calibration Script.
 Simulates a clean period of normal user traffic, extracts feature vectors,
 and pre-trains the Isolation Forest model so the detector is primed from second 1.
-Reference: Part 7.4 of PS-61 Architecture Document.
+Reference: Part 7.4 of AI Incident Response Architecture Document.
 """
 
 import os
@@ -64,3 +64,4 @@ def train_and_save_baseline():
 
 if __name__ == "__main__":
     train_and_save_baseline()
+
