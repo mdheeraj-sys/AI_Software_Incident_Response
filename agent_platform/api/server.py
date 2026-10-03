@@ -582,6 +582,36 @@ async def websocket_live_feed(websocket: WebSocket):
         if websocket in active_websockets:
             active_websockets.remove(websocket)
 
+# ----------------- Attack Trigger & Simulation API -----------------
+class AttackTriggerRequest(BaseModel):
+    attack_type: str = "brute"  # brute, sqli, scan, deploy
+    source_ip: str = "10.10.10.11"
+
+@app.post("/api/trigger-attack")
+async def api_trigger_attack(req: AttackTriggerRequest, background_tasks: BackgroundTasks):
+    from attack_scripts.attack_runner import run_brute_force, run_sqli_attack, run_directory_scan, trigger_bad_deploy
+
+    def execute_attack():
+        if req.attack_type == "brute":
+            run_brute_force(source_ip=req.source_ip, attempts=30)
+        elif req.attack_type == "sqli":
+            run_sqli_attack(source_ip=req.source_ip)
+        elif req.attack_type == "scan":
+            run_directory_scan(source_ip=req.source_ip)
+        elif req.attack_type == "deploy":
+            trigger_bad_deploy()
+
+    background_tasks.add_task(execute_attack)
+    return {"message": f"Attack '{req.attack_type}' launched from {req.source_ip}."}
+
+@app.post("/api/unblock-all")
+def api_unblock_all():
+    from victim_app.main import FAULT_STATE
+    FAULT_STATE["blocked_ips"].clear()
+    FAULT_STATE["rate_limited_ips"].clear()
+    FAULT_STATE["bad_deploy_active"] = False
+    return {"message": "All firewall blocks and rate limits cleared."}
+
 # ----------------- Built-in Interactive Web Command Center Dashboard -----------------
 @app.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard_html():
