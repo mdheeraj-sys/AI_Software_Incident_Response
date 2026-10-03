@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOC Command Center — AI Incident Response Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #101626;
+      --surface-elevated: #182238;
+      --border: #22304d;
+      --border-accent: #2e446d;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      --critical: #ef4444;
+      --high: #f97316;
+      --medium: #f59e0b;
+      --low: #10b981;
+      --approved: #10b981;
+      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Navigation */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+      text-transform: uppercase;
+    }
+    .header-stats {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .stat-pill {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--low);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Main Grid Layout */
+    .main-container {
+      display: grid;
+      grid-template-columns: 360px 1fr 380px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Panel Generic Styles */
+    .panel {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .panel:last-child {
+      border-right: none;
+    }
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(16, 22, 38, 0.8);
+      backdrop-filter: blur(10px);
+    }
+    .panel-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+    }
+
+    /* Left Panel: Incident List */
+    .incident-card {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .incident-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .incident-card.active {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.06);
+    }
+    .incident-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .badge.critical { background: rgba(239, 68, 68, 0.2); color: var(--critical); border: 1px solid var(--critical); }
+    .badge.high { background: rgba(249, 115, 22, 0.2); color: var(--high); border: 1px solid var(--high); }
+    .badge.medium { background: rgba(245, 158, 11, 0.2); color: var(--medium); border: 1px solid var(--medium); }
+    .badge.low { background: rgba(16, 185, 129, 0.2); color: var(--low); border: 1px solid var(--low); }
+    .incident-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .incident-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Middle Panel: Detailed Triage & Human Review */
+    .detail-container {
+      padding: 24px;
+      overflow-y: auto;
+      height: 100%;
+    }
+    .detail-hero {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .hero-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .incident-headline {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .summary-text {
+      color: #cbd5e1;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      margin-top: 10px;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin: 20px 0 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Hypothesis Box */
+    .hypothesis-card {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .hyp-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    .evidence-chips {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .ev-chip {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-accent);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+    }
+
+    /* Recommended Actions & Human in Loop Gating */
+    .action-card {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+    .action-card.sensitive {
+      border-left: 4px solid var(--high);
+    }
+    .action-info {
+      flex: 1;
+      padding-right: 16px;
+    }
+    .action-type {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .action-rationale {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-approve {
+      background: var(--approved);
+      color: #000;
+    }
+    .btn-approve:hover {
+      background: #059669;
+    }
+    .btn-reject {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--critical);
+      border: 1px solid var(--critical);
+    }
+    .btn-reject:hover {
+      background: rgba(239, 68, 68, 0.4);
+    }
+    .btn-executed {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--low);
+      border: 1px solid var(--low);
+      cursor: default;
+    }
+
+    /* Right Panel: Live Feed & Audit Stream */
+    .stream-feed {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .feed-item {
+      background: rgba(24, 34, 56, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      line-height: 1.4;
+      animation: fadeIn 0.3s ease;
+    }
+    .feed-item.anomaly {
+      border-left: 3px solid var(--critical);
+      background: rgba(239, 68, 68, 0.08);
+    }
+    .feed-item.template {
+      border-left: 3px solid var(--accent);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .feed-time {
+      color: var(--text-muted);
+      margin-right: 6px;
+    }
+
+    /* Hash-chained audit badge */
+    .audit-hash-block {
+      background: #070a12;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #38bdf8;
+      margin-top: 15px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">PS-61</span>
+      <span>Autonomous Incident Response System</span>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span class="stat-dot"></span>
+        <span id="ws-status">Live Telemetry Connected</span>
+      </div>
+      <div class="stat-pill">
+        <span>Drain Templates:</span>
+        <strong id="stat-templates" style="color:var(--accent);">0</strong>
+      </div>
+      <div class="stat-pill">
+        <span>Incidents:</span>
+        <strong id="stat-incidents" style="color:var(--high);">0</strong>
+      </div>
+      <div class="stat-pill">
+        <span>Active Mitigations:</span>
+        <strong id="stat-mitigations" style="color:var(--low);">0</strong>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main 3-Column Layout -->
+  <div class="main-container">
+
+    <!-- Column 1: Incidents List -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Active Incidents</div>
+        <button class="btn" style="background:var(--surface-elevated);color:var(--text);font-size:0.75rem;padding:4px 8px;" onclick="loadIncidents()">Refresh</button>
+      </div>
+      <div class="panel-content" id="incident-list">
+        <!-- Rendered dynamically -->
+        <div style="text-align:center;color:var(--text-muted);padding-top:40px;">No incidents detected. Waiting for telemetry...</div>
+      </div>
+    </div>
+
+    <!-- Column 2: Incident Triage & Human Review -->
+    <div class="panel" style="background:#0b101c;">
+      <div class="panel-header">
+        <div class="panel-title">Investigation & Action Approval</div>
+        <span id="active-incident-id" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--accent);">Select Incident</span>
+      </div>
+      <div class="detail-container" id="incident-detail">
+        <div style="text-align:center;color:var(--text-muted);padding-top:80px;">
+          <h3>Awaiting Incident Selection</h3>
+          <p style="margin-top:8px;">Choose an incident from the left panel to review the agent's investigation, cited evidence, and approve mitigation actions.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 3: Live Feed & Anomaly Stream -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Real-time Telemetry & Anomaly Stream</div>
+      </div>
+      <div class="panel-content stream-feed" id="live-stream-feed">
+        <div class="feed-item">System initialized. Listening on log tailer...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let selectedIncidentId = null;
+    let incidents = [];
+    let knownTemplates = new Set();
+    let mitigationCount = 0;
+
+    // Connect WebSocket Live Feed
+    const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${wsProto}//${window.location.host}/live-feed`;
+    let ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      document.getElementById("ws-status").innerText = "Live Telemetry Active";
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        handleWsMessage(msg);
+      } catch (e) {
+        console.error("WS Parse error", e);
+      }
+    };
+
+    ws.onclose = () => {
+      document.getElementById("ws-status").innerText = "Reconnecting...";
+      setTimeout(() => { ws = new WebSocket(wsUrl); }, 3000);
+    };
+
+    function handleWsMessage(msg) {
+      const feed = document.getElementById("live-stream-feed");
+
+      if (msg.type === "log_event") {
+        const d = msg.data;
+        if (d.template_id) knownTemplates.add(d.template_id);
+        document.getElementById("stat-templates").innerText = knownTemplates.size;
+
+        const el = document.createElement("div");
+        el.className = `feed-item ${d.is_new_template ? 'template' : ''}`;
+        const timeStr = d.timestamp ? d.timestamp.split("T")[1].substring(0,8) : "";
+        el.innerHTML = `<span class="feed-time">${timeStr}</span> <strong>[${d.source}]</strong> ${escapeHtml(d.raw)}`;
+        feed.prepend(el);
+        if (feed.children.length > 50) feed.removeChild(feed.lastChild);
+      }
+      else if (msg.type === "anomaly_alert") {
+        const a = msg.data;
+        const el = document.createElement("div");
+        el.className = "feed-item anomaly";
+        el.innerHTML = `<span class="feed-time">ALERT</span> ⚠️ <strong style="color:var(--critical);">${a.reason}</strong>`;
+        feed.prepend(el);
+      }
+      else if (msg.type === "new_incident") {
+        loadIncidents();
+      }
+      else if (msg.type === "action_updated") {
+        if (selectedIncidentId === msg.data.incident_id) {
+          viewIncident(selectedIncidentId);
+        }
+      }
+    }
+
+    async function loadIncidents() {
+      try {
+        const res = await fetch(`${API_BASE}/incidents`);
+        incidents = await res.json();
+        document.getElementById("stat-incidents").innerText = incidents.length;
+        renderIncidentList();
+        if (incidents.length > 0 && !selectedIncidentId) {
+          viewIncident(incidents[0].id);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function renderIncidentList() {
+      const listEl = document.getElementById("incident-list");
+      if (incidents.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding-top:40px;">No incidents detected.</div>';
+        return;
+      }
+
+      listEl.innerHTML = incidents.map(inc => `
+        <div class="incident-card ${inc.id === selectedIncidentId ? 'active' : ''}" onclick="viewIncident('${inc.id}')">
+          <div class="incident-card-top">
+            <span class="badge ${inc.severity}">${inc.severity}</span>
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">${inc.created_at.split('T')[1].substring(0,8)}</span>
+          </div>
+          <div class="incident-title">${escapeHtml(inc.title)}</div>
+          <div class="incident-meta">
+            <span>Status: <strong style="color:var(--accent);">${inc.status}</strong></span>
+            <span>Score: ${inc.severity_score}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function viewIncident(id) {
+      selectedIncidentId = id;
+      document.getElementById("active-incident-id").innerText = id;
+      renderIncidentList();
+
+      const detailEl = document.getElementById("incident-detail");
+      detailEl.innerHTML = '<div style="text-align:center;padding-top:40px;">Loading incident forensic record...</div>';
+
+      try {
+        const res = await fetch(`${API_BASE}/incidents/${id}`);
+        const data = await res.json();
+        renderIncidentDetail(data);
+      } catch (e) {
+        detailEl.innerHTML = `<div style="color:var(--critical);">Failed to load incident details: ${e}</div>`;
+      }
+    }
+
+    function renderIncidentDetail(data) {
+      const detailEl = document.getElementById("incident-detail");
+
+      const hypothesesHtml = (data.hypotheses || []).map(h => `
+        <div class="hypothesis-card">
+          <div class="hyp-header">
+            <strong>Rank #${h.rank} Hypothesis</strong>
+            <span style="color:var(--accent);font-weight:700;">${Math.round(h.confidence * 100)}% Confidence</span>
+          </div>
+          <div style="font-size:0.92rem;color:#f1f5f9;">${escapeHtml(h.description)}</div>
+          <div class="evidence-chips">
+            <span style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;">Evidence citations:</span>
+            ${JSON.parse(h.evidence_ids || '[]').map(ev => `<span class="ev-chip">${ev}</span>`).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      const actionsHtml = (data.recommended_actions || []).map(a => `
+        <div class="action-card ${a.tier}">
+          <div class="action-info">
+            <div class="action-type">${a.action_type.toUpperCase()} [${a.target}]</div>
+            <div class="action-rationale">${escapeHtml(a.rationale)}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">
+              Tier: <strong>${a.tier}</strong> | Status: <strong style="color:${a.status === 'executed' ? 'var(--low)' : 'var(--high)'};">${a.status}</strong>
+            </div>
+          </div>
+          <div class="btn-group">
+            ${a.status === 'proposed' && a.tier === 'sensitive' ? `
+              <button class="btn btn-approve" onclick="approveAction('${data.id}', '${a.id}')">Approve Action</button>
+              <button class="btn btn-reject" onclick="rejectAction('${data.id}', '${a.id}')">Reject</button>
+            ` : `
+              <button class="btn btn-executed">✓ ${a.status.toUpperCase()}</button>
+            `}
+          </div>
+        </div>
+      `).join('');
+
+      detailEl.innerHTML = `
+        <div class="detail-hero">
+          <div class="hero-header">
+            <div>
+              <span class="badge ${data.severity}">${data.severity} SEVERITY</span>
+              <div class="incident-headline" style="margin-top:6px;">${escapeHtml(data.title)}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.75rem;color:var(--text-muted);">Assigned To</div>
+              <strong style="font-size:0.85rem;">${data.assigned_to}</strong>
+            </div>
+          </div>
+          <div class="summary-text">${escapeHtml(data.summary)}</div>
+        </div>
+
+        <div class="section-title">Root Cause Hypotheses (Ground-Truth Cited)</div>
+        ${hypothesesHtml || '<p style="color:var(--text-muted);">No hypotheses generated.</p>'}
+
+        <div class="section-title">Human-Gated Remediation Actions</div>
+        ${actionsHtml || '<p style="color:var(--text-muted);">No mitigation actions proposed.</p>'}
+
+        <div class="section-title">Forensic Evidence Records</div>
+        <div style="background:var(--surface-elevated);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--font-mono);font-size:0.75rem;max-height:180px;overflow-y:auto;">
+          ${(data.evidence || []).map(ev => `
+            <div style="margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px;">
+              <span style="color:var(--accent);">${ev.id}</span> [${ev.source}] ${escapeHtml(ev.raw_log)}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    async function approveAction(incidentId, actionId) {
+      try {
+        const res = await fetch(`${API_BASE}/incidents/${incidentId}/actions/${actionId}/approve`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ decided_by: "human_operator" })
+        });
+        const data = await res.json();
+        mitigationCount++;
+        document.getElementById("stat-mitigations").innerText = mitigationCount;
+        viewIncident(incidentId);
+      } catch (e) {
+        alert("Failed to approve action: " + e);
+      }
+    }
+
+    async function rejectAction(incidentId, actionId) {
+      try {
+        await fetch(`${API_BASE}/incidents/${incidentId}/actions/${actionId}/reject`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ decided_by: "human_operator" })
+        });
+        viewIncident(incidentId);
+      } catch (e) {
+        alert("Failed to reject action: " + e);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Initial load
+    loadIncidents();
+  </script>
+</body>
+</html>
