@@ -1,0 +1,7 @@
+{
+  "name": "Devil Pixel Hacker",
+  "description": "High-fidelity black screen animated pixel devil face with evil laughing mechanics, demonic sound synthesis, and cyber hacker interface.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

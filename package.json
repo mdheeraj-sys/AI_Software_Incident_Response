@@ -1,0 +1,10 @@
+{
+  "name": "mrdu-hackathon",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix devil-pixel-hacker run dev",
+    "build": "npm --prefix devil-pixel-hacker run build",
+    "preview": "npm --prefix devil-pixel-hacker run preview"
+  }
+}
