@@ -14,7 +14,8 @@ import {
   Activity, 
   Sliders, 
   Sparkles,
-  Bot
+  Bot,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 interface AgentMiddleCanvasProps {
@@ -378,7 +379,9 @@ export const AgentMiddleCanvas: React.FC<AgentMiddleCanvasProps> = ({
           onClick={onOpenStudio}
           className="text-cyan-700 hover:text-cyan-900 font-semibold underline underline-offset-4 cursor-pointer"
         >
-          [Agent Studio &rarr;]
+          <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>Agent Studio</span>
+          <span aria-hidden="true">&rarr;</span>
         </button>
       </div>
     </div>

@@ -9,6 +9,9 @@ import { Activity, Clock, Users, ArrowUpRight } from 'lucide-react';
 
 interface TelemetrySparklinesProps {
   isSiphoning?: boolean;
+  dataPoints?: DataPoint[];
+  currentThroughput?: string;
+  currentLatency?: string;
 }
 
 interface DataPoint {
@@ -17,8 +20,13 @@ interface DataPoint {
   latency: number;
 }
 
-export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ isSiphoning = false }) => {
-  const [data, setData] = useState<DataPoint[]>(() => {
+export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ 
+  isSiphoning = false,
+  dataPoints: externalData,
+  currentThroughput: externalThroughput,
+  currentLatency: externalLatency,
+}) => {
+  const [internalData, setInternalData] = useState<DataPoint[]>(() => {
     const initial: DataPoint[] = [];
     const now = Date.now();
     for (let i = 20; i >= 0; i--) {
@@ -31,29 +39,29 @@ export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ isSiph
     return initial;
   });
 
-  const [currentThroughput, setCurrentThroughput] = useState<string>('248 req/s');
-  const [currentLatency, setCurrentLatency] = useState<string>('14.2 ms');
+  const [internalThroughput, setInternalThroughput] = useState<string>('248 req/s');
+  const [internalLatency, setInternalLatency] = useState<string>('14.2 ms');
 
-  // Real-time telemetry feed updater
+  // Internal ticker if external telemetry is not provided
   useEffect(() => {
+    if (externalData && externalData.length > 0) return;
+
     const interval = setInterval(() => {
-      setData((prev) => {
+      setInternalData((prev) => {
         const last = prev[prev.length - 1];
         let newThroughput: number;
         let newLatency: number;
 
         if (isSiphoning) {
-          // Surge during malicious attack traffic / siphon
           newThroughput = 1450 + Math.floor(Math.random() * 650);
           newLatency = 380.0 + Math.random() * 140.0;
         } else {
-          // Normal nominal student traffic oscillations
           newThroughput = 230 + Math.floor(Math.random() * 35);
           newLatency = 13.0 + Math.random() * 3.0;
         }
 
-        setCurrentThroughput(`${newThroughput} req/s`);
-        setCurrentLatency(`${newLatency.toFixed(1)} ms`);
+        setInternalThroughput(`${newThroughput} req/s`);
+        setInternalLatency(`${newLatency.toFixed(1)} ms`);
 
         const nextPoint: DataPoint = {
           time: (last?.time || Date.now()) + 1200,
@@ -66,7 +74,11 @@ export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ isSiph
     }, 1100);
 
     return () => clearInterval(interval);
-  }, [isSiphoning]);
+  }, [isSiphoning, externalData]);
+
+  const displayData = externalData && externalData.length > 0 ? externalData : internalData;
+  const displayThroughput = externalThroughput || internalThroughput;
+  const displayLatency = externalLatency || internalLatency;
 
   return (
     <div className="space-y-3.5">
@@ -86,14 +98,14 @@ export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ isSiph
               isSiphoning ? 'text-rose-600 animate-pulse font-bold' : 'text-zinc-900'
             }`}
           >
-            {currentThroughput}
+            {displayThroughput}
           </span>
         </div>
 
         {/* Recharts Area Sparkline */}
         <div className="h-10 w-full bg-zinc-50 border border-zinc-200 rounded-sm overflow-hidden p-0.5 shadow-2xs">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+            <AreaChart data={displayData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
               <defs>
                 <linearGradient id="tpGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#0284c7" stopOpacity={0.4} />
@@ -130,14 +142,14 @@ export const TelemetrySparklines: React.FC<TelemetrySparklinesProps> = ({ isSiph
               isSiphoning ? 'text-rose-600 animate-pulse font-bold' : 'text-emerald-700'
             }`}
           >
-            {currentLatency}
+            {displayLatency}
           </span>
         </div>
 
         {/* Recharts Emerald Sparkline */}
         <div className="h-10 w-full bg-emerald-50/60 border border-emerald-200 rounded-sm overflow-hidden p-0.5 shadow-2xs">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+            <AreaChart data={displayData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
               <defs>
                 <linearGradient id="latGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#059669" stopOpacity={0.45} />

@@ -4,7 +4,22 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Shield, Play, RotateCcw, Flame, Zap, ZapOff, Skull, Crosshair } from 'lucide-react';
+import {
+  Terminal,
+  Shield,
+  Play,
+  RotateCcw,
+  Flame,
+  Zap,
+  ZapOff,
+  Skull,
+  Crosshair,
+  KeyRound,
+  DatabaseZap,
+  ScanSearch,
+  Rocket,
+  CornerDownLeft,
+} from 'lucide-react';
 import hackerImg from '../assets/hacker.jpg';
 
 interface HackerVMProps {
@@ -190,10 +205,10 @@ export const HackerVM: React.FC<HackerVMProps> = ({
         </div>
         <div className="grid grid-cols-2 gap-1.5">
           {[
-            { id: 'brute', label: 'Hydra Brute', desc: 'Auth 401 surge' },
-            { id: 'sqli', label: 'SQLMap SQLi', desc: 'UNION SELECT injection' },
-            { id: 'scan', label: 'Gobuster Scan', desc: '404 endpoint fuzzing' },
-            { id: 'deploy', label: 'Bad Deploy', desc: '500 error regression' },
+            { id: 'brute', label: 'Hydra Brute', desc: 'Auth 401 surge', icon: KeyRound },
+            { id: 'sqli', label: 'SQLMap SQLi', desc: 'UNION SELECT injection', icon: DatabaseZap },
+            { id: 'scan', label: 'Gobuster Scan', desc: '404 endpoint fuzzing', icon: ScanSearch },
+            { id: 'deploy', label: 'Bad Deploy', desc: '500 error regression', icon: Rocket },
           ].map((v) => (
             <button
               key={v.id}
@@ -212,7 +227,10 @@ export const HackerVM: React.FC<HackerVMProps> = ({
                   : 'bg-zinc-50/80 border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
               }`}
             >
-              <div className="font-semibold text-[10px]">{v.label}</div>
+              <div className="flex items-center gap-1 font-semibold text-[10px]">
+                <v.icon className="w-3 h-3 shrink-0" aria-hidden="true" />
+                <span>{v.label}</span>
+              </div>
               <div className="text-[8px] text-zinc-500 truncate">{v.desc}</div>
             </button>
           ))}
@@ -289,6 +307,7 @@ export const HackerVM: React.FC<HackerVMProps> = ({
             type="submit"
             className="text-[10px] px-2.5 py-1 rounded bg-zinc-900 text-white hover:bg-black transition-colors uppercase font-medium cursor-pointer shadow-2xs border border-zinc-800"
           >
+            <CornerDownLeft className="w-3 h-3" aria-hidden="true" />
             EXEC
           </button>
         </form>

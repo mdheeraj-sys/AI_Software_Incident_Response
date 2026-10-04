@@ -1,9 +1,20 @@
-import Avatar from "@/components/ui/components-primitives-avatar";
+"use client";
 
-export default function Demo() {
+import React from "react";
+import RuixenMoonChat from "@/components/ui/ruixen-moon-chat";
+
+export default function DemoPage() {
   return (
-    <div className="flex items-center justify-center p-8 bg-zinc-950 min-h-[300px] rounded-2xl border border-zinc-800">
-      <Avatar />
-    </div>
+    <main className="min-h-screen w-full bg-black text-white">
+      {/* Chat Component */}
+      <section className="flex justify-center items-start w-full">
+        <RuixenMoonChat />
+      </section>
+
+      {/* Footer */}
+      <footer className="text-center text-neutral-500 py-2 mt-10 border-t border-neutral-800 text-sm">
+        © {new Date().getFullYear()} SIRA Assistent Demo Page
+      </footer>
+    </main>
   );
 }

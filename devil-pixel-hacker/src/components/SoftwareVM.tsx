@@ -23,6 +23,7 @@ import {
   Layers
 } from 'lucide-react';
 import { TelemetrySparklines } from './TelemetrySparklines';
+import { useLiveTelemetry } from '../services/telemetryService';
 
 interface SoftwareVMProps {
   isSiphoning: boolean;
@@ -37,6 +38,7 @@ export const SoftwareVM: React.FC<SoftwareVMProps> = ({
   onViewSoftwareCompletely,
   hackerIp = '119.235.52.196',
 }) => {
+  const telemetry = useLiveTelemetry(isSiphoning);
   return (
     <div className="w-full h-full flex flex-col bg-slate-50/70 border-l border-zinc-200 font-mono text-[11px] overflow-y-auto select-none">
       {/* 1. Software VM Window Header Bar */}
@@ -65,7 +67,7 @@ export const SoftwareVM: React.FC<SoftwareVMProps> = ({
                 : 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-2xs'
             }`}
           >
-            {isSiphoning ? 'UNDER ATTACK' : 'PORTAL ONLINE'}
+            {isSiphoning ? 'UNDER ATTACK' : telemetry.isBackendConnected ? 'PORTAL ONLINE (:8000 LIVE)' : 'PORTAL ONLINE'}
           </span>
         </div>
       </div>
@@ -122,11 +124,24 @@ export const SoftwareVM: React.FC<SoftwareVMProps> = ({
                 {isSiphoning ? 'BREACH ATTEMPT DETECTED' : 'LIVE PORTAL TELEMETRY'}
               </span>
             </div>
-            <span className="font-mono text-[10px] text-zinc-500 font-medium">v4.8.2</span>
+            <div className="flex items-center gap-1.5 font-mono text-[10px]">
+              {telemetry.isBackendConnected && (
+                <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 text-[9px] font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                  LIVE :8000
+                </span>
+              )}
+              <span className="text-zinc-500 font-medium">v4.8.2</span>
+            </div>
           </div>
 
           {/* Dynamic Recharts Sparklines (Throughput + Latency) */}
-          <TelemetrySparklines isSiphoning={isSiphoning} />
+          <TelemetrySparklines 
+            isSiphoning={isSiphoning}
+            dataPoints={telemetry.dataPoints}
+            currentThroughput={`${telemetry.rps} req/s`}
+            currentLatency={`${telemetry.p95LatencyMs.toFixed(1)} ms`}
+          />
 
           {/* Live Quick KPI Stream */}
           <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-zinc-100 text-[10px]">
@@ -139,7 +154,7 @@ export const SoftwareVM: React.FC<SoftwareVMProps> = ({
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>HTTP 200 Ratio:</span>
               <span className={`font-bold ml-auto ${isSiphoning ? 'text-rose-600' : 'text-emerald-700'}`}>
-                {isSiphoning ? '72.4%' : '99.8%'}
+                {telemetry.httpSuccessRate.toFixed(1)}%
               </span>
             </div>
           </div>
@@ -162,7 +177,9 @@ export const SoftwareVM: React.FC<SoftwareVMProps> = ({
                 <Cloud className="w-3.5 h-3.5 text-cyan-600" />
                 Cloud Hosting / FastAPI (:8000)
               </span>
-              <span className="text-emerald-700 font-semibold">200 OK</span>
+              <span className={`font-semibold font-mono ${telemetry.isBackendConnected ? 'text-emerald-700' : 'text-rose-600'}`}>
+                {telemetry.isBackendConnected ? `200 OK (${telemetry.victimLatencyMs}ms)` : 'OFFLINE'}
+              </span>
             </div>
 
             {/* Database */}
@@ -171,7 +188,7 @@ export const SoftwareVM: React.FC<SoftwareVMProps> = ({
                 <Database className="w-3.5 h-3.5 text-purple-600" />
                 PostgreSQL / Student DB (4,820 rec)
               </span>
-              <span className="text-emerald-700 font-semibold">2.1ms</span>
+              <span className="text-emerald-700 font-semibold font-mono">2.1ms</span>
             </div>
 
             {/* Fees & Admissions Engine */}
@@ -180,7 +197,7 @@ export const SoftwareVM: React.FC<SoftwareVMProps> = ({
                 <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
                 Fee Ledgers & Admission Engine
               </span>
-              <span className="text-emerald-700 font-semibold">SYNCED</span>
+              <span className="text-emerald-700 font-semibold font-mono">SYNCED</span>
             </div>
 
             {/* Firewall & Drain Parser */}
@@ -189,8 +206,12 @@ export const SoftwareVM: React.FC<SoftwareVMProps> = ({
                 <Shield className="w-3.5 h-3.5 text-indigo-600" />
                 Drain 3.0 Telemetry Firewall
               </span>
-              <span className={isSiphoning ? 'text-amber-700 font-semibold' : 'text-zinc-600'}>
-                {isSiphoning ? 'DROPPING ATTACK PACKETS' : 'ALLOW-LIST ACTIVE'}
+              <span className={`font-mono ${isSiphoning ? 'text-amber-700 font-semibold' : telemetry.blockedIpsCount > 0 ? 'text-rose-700 font-semibold' : 'text-zinc-600'}`}>
+                {isSiphoning 
+                  ? 'DROPPING ATTACK PACKETS' 
+                  : telemetry.blockedIpsCount > 0 
+                  ? `${telemetry.blockedIpsCount} IP(S) BLOCKED` 
+                  : 'ALLOW-LIST ACTIVE'}
               </span>
             </div>
           </div>
